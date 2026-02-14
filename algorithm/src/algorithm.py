@@ -13,7 +13,13 @@ from ocean_runner import Algorithm, Config
 from src.age_average.domain import AgeInputParameters, AgeResults
 from src.age_average.services import InputParser, AgeStatisticsCalculator
 from src.age_average.infrastructure import FileReader, ResultWriter
+from src.shared.domain import AppConfig
 from src.shared.domain.exceptions import AlgorithmError, ValidationError, ParsingError, CalculationError, FileOperationError
+from src.shared.infrastructure import PerformanceMonitor
+
+# Load configuration
+config_path = Path("/config.yaml")
+config = AppConfig.from_yaml_with_env(config_path)
 
 algorithm = Algorithm(config=Config(custom_input=AgeInputParameters))
 
@@ -47,42 +53,41 @@ def validate(algo: Algorithm) -> None:
 def run(algo: Algorithm) -> AgeResults:
     """
     Execute the main algorithm logic.
-    
+
     This function coordinates services to:
     1. Read input files
     2. Parse and extract age data
     3. Calculate statistics
     4. Return results
-    
+
     Args:
         algo: Algorithm instance with job details and logger
-        
+
     Returns:
         AgeResults object with calculated statistics
     """
     algo.logger.info("run: starting")
-    
+
+    # Initialize performance monitoring
+    perf_monitor = PerformanceMonitor(algo.logger)
+
     try:
         # Initialize services (Dependency Injection)
         file_reader = FileReader(algo.logger)
         input_parser = InputParser(algo.logger)
         stats_calculator = AgeStatisticsCalculator(algo.logger)
-        
+
         # Extract ages from all input files
         all_ages = []
         for idx, path in algo.job_details.inputs():
             algo.logger.info(f"Processing input {idx}: {path.name}")
-            
-            # Read file content
             text = file_reader.read_text(path)
-            
-            # Parse and extract ages
             ages = input_parser.extract_ages(text, path.name)
             all_ages.extend(ages)
-        
+
         # Calculate statistics
         stats = stats_calculator.calculate(all_ages)
-        
+
         # Build and return results
         return AgeResults(
             status="success",
@@ -147,22 +152,26 @@ def save(
 ) -> None:
     """
     Save algorithm results to storage.
-    
+
     Args:
         algo: Algorithm instance with logger
         results: AgeResults object to save
         base_path: Base directory for output files
     """
     algo.logger.info("save: starting")
-    
+
     try:
         # Initialize writer service
         writer = ResultWriter(algo.logger)
-        
+
         # Write results to JSON file
         output_file = base_path / "results.json"
         writer.write_json(results, output_file)
-        
+
+        # Log final performance metrics
+        perf_monitor = PerformanceMonitor(algo.logger)
+        perf_monitor.log_final_metrics()
+
     except FileOperationError as e:
         algo.logger.error(f"Failed to save results: {e}")
         raise

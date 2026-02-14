@@ -1,103 +1,285 @@
-# Hexagonal Architecture
+# Hexagonal Architecture Implementation
 
-This project follows **Hexagonal Architecture** (also known as Ports and Adapters) with a clear separation between generic shared components and specific business functionalities.
+This project implements **Hexagonal Architecture** (Ports & Adapters) following SOLID principles, providing a robust and maintainable foundation for Ocean Protocol algorithms.
 
-## Structure Overview
+## Architecture Overview
+
+Hexagonal Architecture separates business logic from external concerns, making the system more testable, maintainable, and adaptable to change.
+
+### Key Principles
+
+- **Dependency Inversion**: Business logic doesn't depend on infrastructure
+- **Single Responsibility**: Each class has one clear purpose
+- **Open/Closed**: Easy to extend without modifying existing code
+- **Interface Segregation**: Clean interfaces between layers
+- **Dependency Injection**: Services are injected, not created
+
+## Project Structure
 
 ```
 algorithm/src/
-├── shared/                          # Generic, reusable components
-│   ├── domain/                      # Base domain models
-│   │   ├── input_parameters.py      # Base InputParameters model
-│   │   ├── results.py               # Base Results model
-│   │   ├── exceptions.py            # Imports all exception classes
-│   │   └── exceptions/              # Exception classes directory
-│   │       ├── __init__.py          # Exception package
-│   │       ├── algorithm_error.py   # AlgorithmError base class
-│   │       ├── validation_error.py  # ValidationError class
-│   │       ├── parsing_error.py     # ParsingError class
-│   │       ├── calculation_error.py # CalculationError class
-│   │       └── file_operation_error.py # FileOperationError class
-│   ├── services/                    # Generic services (currently empty)
-│   └── infrastructure/              # Generic infrastructure (currently empty)
+├── shared/                          # Reusable components
+│   ├── domain/                      # Shared domain models
+│   │   ├── config/                  # Configuration models
+│   │   │   ├── __init__.py
+│   │   │   ├── algorithm_config.py  # AlgorithmConfig
+│   │   │   ├── app_config.py        # AppConfig (main)
+│   │   │   ├── data_config.py       # DataConfig
+│   │   │   ├── logging_config.py    # LoggingConfig
+│   │   │   ├── output_config.py     # OutputConfig
+│   │   │   ├── performance_config.py # PerformanceConfig
+│   │   │   └── statistics_config.py # StatisticsConfig
+│   │   ├── exceptions/              # Exception hierarchy
+│   │   │   ├── __init__.py
+│   │   │   ├── algorithm_error.py   # AlgorithmError base
+│   │   │   ├── validation_error.py  # ValidationError
+│   │   │   ├── parsing_error.py     # ParsingError
+│   │   │   ├── calculation_error.py # CalculationError
+│   │   │   └── file_operation_error.py # FileOperationError
+│   │   ├── input_parameters.py      # Base InputParameters
+│   │   ├── results.py               # Base Results
+│   │   └── __init__.py
+│   └── infrastructure/              # Shared infrastructure
+│       └── performance/              # Performance monitoring
+│           ├── __init__.py
+│           ├── performance_metrics.py # PerformanceMetrics
+│           └── performance_monitor.py # PerformanceMonitor
 │
 ├── age_average/                     # Age statistics bounded context
-│   ├── domain/                      # Core business logic (entities & value objects)
-│   │   ├── age_input_parameters.py  # AgeInputParameters (extends base)
-│   │   ├── age_results.py           # AgeResults (extends base)
-│   │   └── age_statistics.py        # AgeStatistics value object
-│   │
-│   ├── services/                    # Application services (use cases)
-│   │   ├── input_parser.py          # Parse input data
-│   │   └── age_statistics_calculator.py  # Calculate age statistics
-│   │
-│   └── infrastructure/              # External adapters (file I/O, etc.)
-│       ├── file_reader.py           # Read files from disk
-│       └── result_writer.py         # Write results to disk
+│   ├── domain/                      # Business entities & value objects
+│   │   ├── age_input_parameters.py  # AgeInputParameters
+│   │   ├── age_results.py           # AgeResults
+│   │   └── age_statistics.py        # AgeStatistics
+│   ├── services/                    # Application services
+│   │   ├── input_parser.py          # InputParser
+│   │   └── age_statistics_calculator.py # AgeStatisticsCalculator
+│   └── infrastructure/              # Infrastructure adapters
+│       ├── file_reader.py           # FileReader
+│       └── result_writer.py         # ResultWriter
 │
-└── algorithm.py                     # Orchestration layer (Ocean Runner)
+└── algorithm.py                     # Main orchestration (Ocean Runner)
 ```
 
-## Architecture Principles
+## Architecture Layers
 
-### 1. **Shared Module**
-Contains generic base classes and infrastructure that can be reused across different bounded contexts:
-- **Domain**: `InputParameters` (base class for all algorithm inputs), `Results` (base class for all algorithm results)
-- **Services**: Generic application services (currently empty, ready for shared business logic)
-- **Infrastructure**: Generic adapters and infrastructure components (currently empty, ready for shared I/O operations)
+### 1. Domain Layer (Core Business Logic)
 
-These are domain-agnostic and define the contract for Ocean Protocol algorithms.
+**Purpose**: Contains pure business logic with no external dependencies.
 
-### 2. **Age Average Module** (Bounded Context)
-A complete implementation of age statistics functionality following hexagonal architecture:
+**Shared Domain Components**:
+- `InputParameters`: Base class for all algorithm inputs
+- `Results`: Base class for all algorithm outputs
+- `AppConfig`: Main configuration with Pydantic validation
+- Exception hierarchy for domain-specific errors
 
-#### Domain Layer (Core)
-- **Pure business logic**, no dependencies on infrastructure
-- Contains entities, value objects, and domain models
-- `AgeInputParameters`, `AgeResults`, `AgeStatistics`
+**Bounded Context Domain**:
+- `AgeInputParameters`: Specific input model for age statistics
+- `AgeResults`: Specific output model for age statistics
+- `AgeStatistics`: Value object for statistical calculations
 
-#### Services Layer (Use Cases)
-- **Application logic** that orchestrates domain models
+### 2. Application Layer (Use Cases)
+
+**Purpose**: Orchestrates domain objects to fulfill business requirements.
+
+**Services**:
 - `InputParser`: Transforms external data into domain objects
 - `AgeStatisticsCalculator`: Implements age calculation business rules
+- Dependency injection ensures testability and flexibility
 
-#### Infrastructure Layer (Adapters)
-- **External concerns** like file I/O, databases, APIs
-- `FileReader`: Adapter for reading files
-- `ResultWriter`: Adapter for writing results
-- Can be easily swapped with different implementations
+### 3. Infrastructure Layer (External Adapters)
 
-### 3. **Dependency Direction**
+**Purpose**: Handles external concerns like I/O, APIs, and frameworks.
+
+**Adapters**:
+- `FileReader`: File system abstraction for reading inputs
+- `ResultWriter`: File system abstraction for writing outputs
+- `PerformanceMonitor`: System monitoring and metrics collection
+
+### 4. Presentation Layer (Orchestration)
+
+**Purpose**: Coordinates the entire algorithm execution.
+
+**Main Components**:
+- `algorithm.py`: Entry point using Ocean Runner framework
+- Exception handling and error propagation
+- Performance monitoring integration
+- Configuration loading and validation
+
+## Dependency Flow
+
 ```
-Infrastructure → Services → Domain
-         ↓          ↓          ↓
-      Shared Domain (base classes)
+Infrastructure → Application → Domain
+     ↓             ↓           ↓
+  External APIs  Use Cases  Business Rules
 ```
 
-- **Domain** has no dependencies (pure business logic)
-- **Services** depend only on Domain
-- **Infrastructure** depends on Domain and Services
-- **All layers** can use Shared components
+- **Domain** has zero dependencies (pure logic)
+- **Application** depends only on Domain
+- **Infrastructure** depends on Domain and Application
+- **Presentation** coordinates all layers
+
+## Configuration Management
+
+The project uses **Pydantic** for robust configuration validation:
+
+### Configuration Sources
+1. **YAML file** (`algorithm/config.yaml`): Base configuration
+2. **Environment variables**: Override YAML values
+3. **Validation**: Automatic type checking and constraint validation
+
+### Configuration Structure
+```yaml
+algorithm:
+  name: "age_average"
+  version: "1.0.0"
+  description: "Calculate age statistics"
+
+data:
+  supported_formats: ["json"]
+  max_file_size_mb: 100
+  age_range:
+    min: 0
+    max: 150
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+performance:
+  batch_size: 1000
+  timeout_seconds: 300
+```
+
+## Error Handling
+
+Comprehensive exception hierarchy for different error types:
+
+- `AlgorithmError`: Base exception for all algorithm errors
+- `ValidationError`: Input validation failures
+- `ParsingError`: Data parsing issues
+- `CalculationError`: Business logic calculation errors
+- `FileOperationError`: File I/O operation failures
+
+Each exception provides specific error information for better debugging and user feedback.
+
+## Performance Monitoring
+
+Built-in performance tracking throughout the execution:
+
+- **Execution time**: Total algorithm runtime
+- **Memory usage**: Current and peak memory consumption
+- **CPU utilization**: Processor usage percentage
+- **Structured logging**: Metrics available in both log messages and structured data
+
+## Testing Strategy
+
+Comprehensive test suite mirroring the source structure:
+
+```
+algorithm/tests/
+├── shared/
+│   ├── domain/
+│   └── infrastructure/
+├── age_average/
+│   ├── domain/
+│   ├── services/
+│   └── infrastructure/
+└── test_algorithm.py
+```
+
+**Test Coverage**:
+- 51 tests passing
+- Unit tests for all domain objects
+- Service layer testing with mocked dependencies
+- Integration tests for complete workflows
+- Configuration validation tests
 
 ## Benefits
 
-1. **Reusability**: Shared module can be used by multiple bounded contexts
-2. **Testability**: Each layer can be tested independently (51 tests passing)
-3. **Maintainability**: One class per file, clear responsibilities
-4. **Extensibility**: Easy to add new bounded contexts (e.g., `price_analysis`, `user_segmentation`)
-5. **Independence**: Business logic (domain) is isolated from technical concerns
-6. **Clean Structure**: No duplicate code, all old directories removed
+### 1. **Maintainability**
+- Clear separation of concerns
+- One class per file (SOLID principle)
+- Easy to locate and modify specific functionality
 
-## Adding a New Bounded Context
+### 2. **Testability**
+- Dependency injection enables easy mocking
+- Each layer testable in isolation
+- High test coverage ensures reliability
 
-To add a new feature (e.g., `price_analysis`):
+### 3. **Extensibility**
+- New bounded contexts follow the same pattern
+- Infrastructure adapters easily swappable
+- Configuration-driven behavior
 
+### 4. **Reusability**
+- Shared components usable across contexts
+- Generic base classes reduce duplication
+- Modular design supports composition
+
+### 5. **Robustness**
+- Comprehensive error handling
+- Configuration validation prevents runtime errors
+- Performance monitoring aids optimization
+
+## Adding New Features
+
+To add a new algorithm (e.g., `price_analysis`):
+
+1. **Create bounded context structure**:
+   ```
+   algorithm/src/price_analysis/
+   ├── domain/
+   ├── services/
+   └── infrastructure/
+   ```
+
+2. **Implement domain models** extending shared base classes
+
+3. **Create application services** with business logic
+
+4. **Build infrastructure adapters** for external interactions
+
+5. **Update main algorithm.py** to orchestrate the new context
+
+6. **Add comprehensive tests** following the existing pattern
+
+## Development Workflow
+
+### Local Development
+```bash
+# Run tests
+docker compose run --rm algorithm pytest
+
+# Run algorithm
+docker compose up
+
+# Check logs
+docker compose logs algorithm
 ```
-algorithm/src/
-├── shared/                    # Reuse existing base classes
-├── age_average/              # Existing feature
-└── price_analysis/           # New bounded context
-    ├── domain/
+
+### Configuration
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Modify values as needed
+# Algorithm will automatically load .env file
+```
+
+### Performance Monitoring
+Metrics are automatically logged at algorithm completion:
+```
+Algorithm execution completed: execution_time=0.107s, memory_usage=0.01MB, peak_memory=39.84MB, cpu_percent=0.00%
+```
+
+## CI/CD Integration
+
+GitHub Actions pipeline provides:
+- Automated testing on every push
+- Multi-platform Docker image building
+- Quality assurance and deployment readiness
+
+This architecture provides a solid foundation for building and maintaining complex algorithms while keeping the codebase clean, testable, and maintainable.
     │   ├── price_input_parameters.py
     │   ├── price_results.py
     │   └── price_statistics.py
@@ -114,12 +296,14 @@ Each bounded context is self-contained and independent!
 Tests mirror the source structure:
 ```
 algorithm/tests/
-├── shared/domain/              # Tests for base classes
-├── age_average/               # Tests for age_average module
+├── shared/
+│   ├── domain/
+│   └── infrastructure/
+├── age_average/
 │   ├── domain/
 │   ├── services/
 │   └── infrastructure/
-└── test_algorithm.py          # Integration tests
+└── test_algorithm.py
 ```
 
 **51 tests passing** covering all functionality.
@@ -152,43 +336,43 @@ docker compose run --rm algorithm python -m src.algorithm
 - 51 tests covering all functionality
 - Complete test coverage for domain, services, and infrastructure layers
 
-## Mejoras Implementadas
+## Implemented Improvements
 
-### ✅ Manejo de Errores
-- **Excepciones específicas**: Se han implementado excepciones personalizadas en un subdirectorio dedicado `shared/domain/exceptions/`:
-  - `algorithm_error.py`: `AlgorithmError` (clase base)
-  - `validation_error.py`: `ValidationError` (errores de validación)
-  - `parsing_error.py`: `ParsingError` (errores de parsing)
-  - `calculation_error.py`: `CalculationError` (errores de cálculo)
-  - `file_operation_error.py`: `FileOperationError` (errores de archivo)
-  - `__init__.py`: Paquete de excepciones que exporta todas las clases
-  - `exceptions.py`: Archivo de conveniencia que importa todas las excepciones
+### ✅ Error Handling
+- **Specific exceptions**: Custom exceptions implemented in dedicated `shared/domain/exceptions/` subdirectory:
+  - `algorithm_error.py`: `AlgorithmError` (base class)
+  - `validation_error.py`: `ValidationError` (validation errors)
+  - `parsing_error.py`: `ParsingError` (parsing errors)
+  - `calculation_error.py`: `CalculationError` (calculation errors)
+  - `file_operation_error.py`: `FileOperationError` (file errors)
+  - `__init__.py`: Exception package exporting all classes
+  - `exceptions.py`: Convenience file importing all exceptions
 
-- **Manejo robusto**: Los servicios ahora lanzan excepciones específicas en lugar de retornar valores por defecto
-- **Propagación de errores**: El `algorithm.py` captura y maneja apropiadamente las excepciones, retornando resultados de error informativos
+- **Robust handling**: Services now throw specific exceptions instead of returning default values
+- **Error propagation**: `algorithm.py` catches and handles exceptions appropriately, returning informative error results
 
 ### ✅ CI/CD Pipeline
-- **GitHub Actions**: Pipeline básico en `.github/workflows/ci.yml`
-- **Tests automatizados**: Ejecuta todos los tests con pytest
-- **Construcción Docker**: Construye la imagen multi-plataforma (linux/amd64, linux/arm64)
+- **GitHub Actions**: Basic pipeline in `.github/workflows/ci.yml`
+- **Automated tests**: Runs all tests with pytest
+- **Docker building**: Builds multi-platform images (linux/amd64, linux/arm64)
 
-### ✅ Archivo de Configuración
-- **config.yaml**: Archivo centralizado para parámetros del algoritmo
-- **Categorías de configuración**:
-  - `algorithm`: Metadatos del algoritmo
-  - `data`: Configuración de procesamiento de datos
-  - `statistics`: Parámetros de cálculo estadístico
-  - `logging`: Configuración de logging
-  - `output`: Formato de salida
-  - `performance`: Ajustes de rendimiento
+### ✅ Configuration File
+- **config.yaml**: Centralized algorithm parameters file
+- **Configuration categories**:
+  - `algorithm`: Algorithm metadata
+  - `data`: Data processing configuration
+  - `statistics`: Statistical calculation parameters
+  - `logging`: Logging configuration
+  - `output`: Output format
+  - `performance`: Performance settings
 
-### ✅ Mejoras en Documentación
-- **README.md actualizado**: Incluye secciones de CI/CD, configuración y guía para crear nuevos algoritmos
-- **README en español**: Documentación completa en español para facilitar el uso
+### ✅ Documentation Improvements
+- **Updated README.md**: Includes CI/CD, configuration, and guide for creating new algorithms
+- **English documentation**: Complete English documentation for better accessibility
 
-## Beneficios de las Mejoras
+## Benefits of Improvements
 
-1. **Robustez**: El manejo de errores específico mejora la fiabilidad y debugging
-2. **Automatización**: CI/CD asegura calidad de código en cada commit
-3. **Flexibilidad**: Configuración externa permite adaptar el algoritmo sin modificar código
-4. **Mantenibilidad**: Documentación clara facilita la extensión y mantenimiento
+1. **Robustness**: Specific error handling improves reliability and debugging
+2. **Automation**: CI/CD ensures code quality on every commit
+3. **Flexibility**: External configuration allows algorithm adaptation without code changes
+4. **Maintainability**: Clear documentation facilitates extension and maintenance

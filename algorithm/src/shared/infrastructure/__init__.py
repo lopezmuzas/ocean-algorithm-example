@@ -1,6 +1,5 @@
 """Shared infrastructure module."""
 
-# Generic infrastructure adapters can be added here as needed
-# Example: BaseRepository, BaseFileHandler, etc.
+from .performance.performance_monitor import PerformanceMonitor
 
-__all__ = []
+__all__ = ["PerformanceMonitor"]
