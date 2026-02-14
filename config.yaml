@@ -1,0 +1,44 @@
+# Configuration file for Ocean Protocol Algorithm
+# This file contains configurable parameters for the algorithm execution
+
+# Algorithm settings
+algorithm:
+  name: "age_average"
+  version: "1.0.0"
+  description: "Calculate age statistics from user data"
+
+# Data processing settings
+data:
+  # Supported input formats
+  supported_formats: ["json"]
+  # Maximum file size in MB
+  max_file_size_mb: 100
+  # Age validation range
+  age_range:
+    min: 0
+    max: 150
+
+# Statistics calculation settings
+statistics:
+  # Number of decimal places for average
+  decimal_places: 2
+  # Whether to include count in results
+  include_count: true
+
+# Logging settings
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Output settings
+output:
+  format: "json"
+  indent: 2
+  encoding: "utf-8"
+
+# Performance settings
+performance:
+  # Batch size for processing large datasets
+  batch_size: 1000
+  # Timeout for operations in seconds
+  timeout_seconds: 300

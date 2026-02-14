@@ -1,8 +1,9 @@
+"""Base Results model."""
+
 from pydantic import BaseModel
 
+
 class Results(BaseModel):
+    """Base class for algorithm execution results."""
     status: str
     message: str
-    min_age: int
-    max_age: int
-    avg_age: float
