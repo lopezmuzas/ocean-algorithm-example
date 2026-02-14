@@ -15,16 +15,14 @@ from src.age_average.services import InputParser, AgeStatisticsCalculator
 from src.age_average.infrastructure import FileReader, ResultWriter
 from src.shared.domain import AppConfig
 from src.shared.domain.exceptions import AlgorithmError, ValidationError, ParsingError, CalculationError, FileOperationError
-from src.shared.infrastructure import PerformanceMonitor
+from src.shared.infrastructure import PerformanceContext, with_performance_monitoring
 
-# Load configuration
-config_path = Path("/config.yaml")
-config = AppConfig.from_yaml_with_env(config_path)
-
+config = AppConfig.load()
 algorithm = Algorithm(config=Config(custom_input=AgeInputParameters))
 
 
 @algorithm.validate
+@with_performance_monitoring
 def validate(algo: Algorithm) -> None:
     """
     Validate input data before processing.
@@ -67,9 +65,6 @@ def run(algo: Algorithm) -> AgeResults:
         AgeResults object with calculated statistics
     """
     algo.logger.info("run: starting")
-
-    # Initialize performance monitoring
-    perf_monitor = PerformanceMonitor(algo.logger)
 
     try:
         # Initialize services (Dependency Injection)
@@ -168,9 +163,7 @@ def save(
         output_file = base_path / "results.json"
         writer.write_json(results, output_file)
 
-        # Log final performance metrics
-        perf_monitor = PerformanceMonitor(algo.logger)
-        perf_monitor.log_final_metrics()
+        PerformanceContext.log_completion(algo)
 
     except FileOperationError as e:
         algo.logger.error(f"Failed to save results: {e}")
