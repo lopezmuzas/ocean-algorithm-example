@@ -1,0 +1,19 @@
+[project]
+name = "algorithm"
+version = "0.1.0"
+description = ""
+authors = [{ name = "Ibatec", email = "antonio.lopez@ibatec.es" }]
+requires-python = ">=3.10,<3.13"
+readme = "README.md"
+license = { file = "LICENSE" }
+dependencies = [
+    "ocean-runner>=0.2.16",
+    "pytest>=8.3.4,<9",
+    "pydantic>=2.0.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

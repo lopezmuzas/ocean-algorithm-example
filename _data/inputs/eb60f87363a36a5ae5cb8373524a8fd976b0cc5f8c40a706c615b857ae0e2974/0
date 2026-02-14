@@ -1,0 +1,9 @@
+[
+  {"user_id": 1, "age": 10},
+  {"user_id": 2, "age": 7},
+  {"user_id": 3, "age": 34},
+  {"user_id": 4, "age": 40},
+  {"user_id": 5, "age": 73},
+  {"user_id": 6, "age": 6},
+  {"user_id": 7, "age": 14}
+]
