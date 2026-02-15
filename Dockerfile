@@ -42,7 +42,8 @@ COPY algorithm/tests /algorithm/tests
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/algorithm
 
 ENV PATH="/algorithm/.venv/bin:$PATH"
-CMD ["python", "-m", "src.algorithm"]
+CMD ["python", "src/algorithm.py"]
 

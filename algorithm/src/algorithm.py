@@ -17,7 +17,6 @@ from age_average.services.age_statistics_calculator import AgeStatisticsCalculat
 from age_average.infrastructure.file_reader import FileReader
 from age_average.infrastructure.result_writer import ResultWriter
 from shared.domain.config.app_config import AppConfig
-from shared.domain.exceptions.algorithm_error import AlgorithmError
 from shared.domain.exceptions.validation_error import ValidationError
 from shared.domain.exceptions.parsing_error import ParsingError
 from shared.domain.exceptions.calculation_error import CalculationError
