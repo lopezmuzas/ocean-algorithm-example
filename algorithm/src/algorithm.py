@@ -167,13 +167,7 @@ class AgeAlgorithm:
             writer.write_json(results, output_file)
 
             # Log final performance metrics
-            metrics = self.performance_monitor.get_metrics()
-            algo.logger.info(
-                f"Total execution time: {metrics.execution_time_seconds:.3f}s | "
-                f"Memory: {metrics.memory_usage_mb:.2f}MB | "
-                f"Peak: {metrics.peak_memory_usage_mb:.2f}MB | "
-                f"CPU: {metrics.cpu_percent:.2f}%"
-            )
+            self.performance_monitor.log_final_metrics()
 
         except FileOperationError as e:
             algo.logger.error(f"Failed to save results: {e}")
