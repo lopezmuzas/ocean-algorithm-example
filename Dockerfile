@@ -45,5 +45,6 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/algorithm
 
 ENV PATH="/algorithm/.venv/bin:$PATH"
-CMD ["python", "src/algorithm.py"]
+# Create logs directory and run algorithm with output redirection to single log file (overwrites)
+CMD ["sh", "-c", "mkdir -p /data/logs && rm -f /data/logs/algorithm.log && python src/algorithm.py 2>&1 | tee /data/logs/algorithm.log"]
 
