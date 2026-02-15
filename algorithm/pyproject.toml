@@ -18,5 +18,5 @@ dependencies = [
 package = false
 
 [tool.pytest.ini_options]
-pythonpath = [".", "src"]
+pythonpath = ["."]
 cache_dir = false

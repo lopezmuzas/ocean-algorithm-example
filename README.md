@@ -88,7 +88,7 @@ Infrastructure Layer (External Adapters)
 │   ├── src/                     # Source code
 │   │   ├── age_average/         # Current bounded context
 │   │   │   ├── domain/          # Business entities & validation
-│   │   │   ├── services/        # Application logic
+│   │   │   ├── application/     # Application logic
 │   │   │   └── infrastructure/  # External adapters
 │   │   └── shared/              # Cross-cutting concerns
 │   │       ├── domain/          # Shared models & exceptions
@@ -215,7 +215,7 @@ This template makes it easy to add new algorithms. See **[DEVELOPER_GUIDE.md](do
 
 3. **Create application service**:
    ```python
-   # algorithm/src/price_analysis/services/price_calculator.py
+   # algorithm/src/price_analysis/application/price_calculator.py
    class PriceCalculator:
        def __init__(self, logger: Logger):
            self.logger = logger

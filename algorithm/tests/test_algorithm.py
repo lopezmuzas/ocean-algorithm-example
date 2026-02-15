@@ -31,7 +31,9 @@ class TestAlgorithm:
     def test_age_algorithm_implements_interface(self):
         """Test that AgeAlgorithm implements AlgorithmInterface."""
         # Create an instance using the factory method
-        age_algorithm = AgeAlgorithm.create()
+        from shared.domain.config.test_config import TestConfig
+        config = TestConfig.create()
+        age_algorithm = AgeAlgorithm.create(config)
         
         # Verify it implements the interface
         assert isinstance(age_algorithm, AlgorithmInterface)
@@ -49,9 +51,11 @@ class TestAlgorithm:
     def test_algorithm_interface_polymorphism(self):
         """Test that AlgorithmInterface enables polymorphism."""
         from shared.domain.algorithm_interface import AlgorithmInterface
+        from shared.domain.config.test_config import TestConfig
         
         # Create an instance
-        age_algorithm = AgeAlgorithm.create()
+        config = TestConfig.create()
+        age_algorithm = AgeAlgorithm.create(config)
         
         # Verify it can be treated as the interface type
         algorithm_interface: AlgorithmInterface = age_algorithm

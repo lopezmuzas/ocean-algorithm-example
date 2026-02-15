@@ -3,7 +3,7 @@
 import json
 import logging
 import pytest
-from age_average.services.input_parser import InputParser
+from age_average.application.input_parser import InputParser
 from shared.domain.exceptions.parsing_error import ParsingError
 from shared.domain.exceptions.validation_error import ValidationError
 

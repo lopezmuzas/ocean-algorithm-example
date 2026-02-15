@@ -50,6 +50,8 @@ Hexagonal Architecture separates business logic from external concerns, making t
 algorithm/src/
 ├── shared/                          # Reusable components across bounded contexts
 │   ├── domain/                      # Shared domain models
+│   │   ├── algorithm_interface.py   # AlgorithmInterface (contract)
+│   │   ├── base_algorithm.py        # BaseAlgorithm (common functionality)
 │   │   ├── config/                  # Configuration models
 │   │   │   ├── __init__.py
 │   │   │   ├── algorithm_config.py  # AlgorithmConfig
@@ -69,7 +71,11 @@ algorithm/src/
 │   │   ├── input_parameters.py      # Base InputParameters
 │   │   ├── results.py               # Base Results
 │   │   └── __init__.py
-│   └── infrastructure/              # Shared infrastructure
+│   └── infrastructure/              # Shared infrastructure services
+│       ├── file_reader.py           # FileReader (moved from age_average)
+│       ├── result_writer.py         # ResultWriter (moved from age_average)
+│       ├── request.py               # Request (input operations wrapper)
+│       ├── response.py              # Response (output operations wrapper)
 │       └── performance/              # Performance monitoring
 │           ├── __init__.py
 │           ├── performance_metrics.py # PerformanceMetrics
@@ -80,13 +86,12 @@ algorithm/src/
 │   │   ├── age_input_parameters.py  # AgeInputParameters
 │   │   ├── age_results.py           # AgeResults
 │   │   └── age_statistics.py        # AgeStatistics
-│   ├── services/                    # Application services (use cases)
+│   ├── application/                 # Application services (use cases)
 │   │   ├── input_parser.py          # InputParser
 │   │   ├── age_extractor.py         # AgeExtractor
 │   │   └── age_statistics_calculator.py # AgeStatisticsCalculator
-│   └── infrastructure/              # Infrastructure adapters
-│       ├── file_reader.py           # FileReader
-│       └── result_writer.py         # ResultWriter
+│   └── infrastructure/              # Infrastructure adapters (specific to this BC)
+│       └── __init__.py              # (Empty - services moved to shared)
 │
 └── algorithm.py                     # Main orchestration (Ocean Runner integration)
 ```
@@ -104,10 +109,17 @@ algorithm/src/
 - Domain events and exceptions
 
 **Shared Domain Components**:
+- `AlgorithmInterface`: Contract that all algorithms must implement
+- `BaseAlgorithm`: Abstract base class providing common algorithm functionality
 - `InputParameters`: Base class for all algorithm inputs
 - `Results`: Base class for all algorithm outputs
 - `AppConfig`: Main configuration with Pydantic validation
 - Exception hierarchy for domain-specific errors
+
+**Algorithm Architecture**:
+- **AlgorithmInterface**: Defines the contract (`validate_input`, `run`, `save`)
+- **BaseAlgorithm**: Provides automatic performance monitoring and callback registration
+- **Concrete Algorithms**: Extend `BaseAlgorithm` and implement specific business logic
 
 **Bounded Context Domain** (e.g., `age_average/domain/`):
 - `AgeInputParameters`: Specific input model
@@ -122,7 +134,7 @@ algorithm/src/
 - ❌ No framework dependencies
 - ❌ No service layer imports
 
-#### 2. Service Layer (`services/`)
+#### 2. Application Layer (`application/`)
 
 **Purpose**: Orchestrates domain objects to fulfill business requirements (use cases).
 
@@ -153,16 +165,20 @@ algorithm/src/
 - Database access
 - External API calls
 - Framework integrations (Ocean Protocol)
+- Shared services available across bounded contexts
 
 **Examples**:
-- `FileReader`: File system abstraction for reading
-- `ResultWriter`: File system abstraction for writing
+- `FileReader`: Generic file reading service (shared)
+- `ResultWriter`: Generic result writing service (shared)
+- `Request`: Input operations wrapper (file reading)
+- `Response`: Output operations wrapper (result writing)
 - `PerformanceMonitor`: System monitoring and metrics
 
 **Rules**:
 - ✅ Can depend on domain and services
 - ✅ Implements technical concerns
 - ✅ Framework-specific code allowed
+- ✅ Shared services should be generic and reusable
 - ❌ No business logic
 - ❌ Should be easily swappable
 
@@ -259,21 +275,42 @@ class ResultWriter:
 ```
 
 ### Dependency Inversion Principle (DIP)
-Depend on **abstractions**, not concretions.
+Depend on **abstractions**, not concretions. High-level modules should not depend on low-level modules.
 
-✅ **DO**:
+✅ **DO**: Use strict dependency injection - Request requires explicit injection
+
 ```python
-class AgeAlgorithm:
+# Strict dependency injection (required for SOLID compliance)
+file_reader = FileReader(logger)
+result_writer = ResultWriter(logger)
+request = Request(ocean_algorithm, file_reader, result_writer)
+
+class AgeAlgorithm(BaseAlgorithm):
     def run(self, algo: Algorithm) -> AgeResults:
-        # Inject dependencies
-        file_reader = FileReader(algo.logger)
+        # Depend on abstractions through Request interface
         parser = InputParser(algo.logger)
         calculator = AgeStatisticsCalculator(algo.logger)
+
+        # Process inputs using injected FileReader
+        all_ages = []
+        for idx, path in self.request.iter_files():
+            text = self.request.file_reader.read_text(path)  # Abstracted I/O
+            ages = parser.extract_ages(text)
+            all_ages.extend(ages)
+
+        stats = calculator.calculate(all_ages)
+        return stats
+```
+
+❌ **DON'T**: Create concrete dependencies directly or use defaults
+```python
+class AgeAlgorithm:
+    def __init__(self):
+        # Violates DIP - depends on concrete FileReader implementation
+        self.file_reader = FileReader(self.logger)  # ❌ Tight coupling
         
-        # Use abstractions
-        text = file_reader.read_text(path)
-        ages = parser.extract_ages(text)
-        stats = calculator.calculate(ages)
+        # Also violates DIP - no dependency injection
+        request = Request(ocean_algorithm)  # ❌ Missing required dependencies
 ```
 
 ---
@@ -285,31 +322,34 @@ class AgeAlgorithm:
 ```
 algorithm/
 ├── src/
-│   ├── age_average/              # Feature module
+│   ├── age_average/              # Feature module (bounded context)
 │   │   ├── domain/
 │   │   │   ├── age_input_parameters.py   # Input models
 │   │   │   ├── age_results.py            # Output models
 │   │   │   └── age_statistics.py         # Business entities
-│   │   ├── services/
+│   │   ├── application/
 │   │   │   ├── input_parser.py           # Parsing logic
 │   │   │   ├── age_extractor.py          # Extraction logic
 │   │   │   └── age_statistics_calculator.py
-│   │   └── infrastructure/
-│   │       ├── file_reader.py            # File I/O
-│   │       └── result_writer.py          # Output writing
-│   ├── shared/                   # Shared kernel
+│   │   └── infrastructure/       # BC-specific infrastructure (usually empty)
+│   ├── shared/                   # Shared kernel (reusable across BCs)
 │   │   ├── domain/
+│   │   │   ├── algorithm_interface.py   # Algorithm contract
+│   │   │   ├── base_algorithm.py        # Common algorithm functionality
 │   │   │   ├── config/           # Configuration models
 │   │   │   ├── exceptions/       # Custom exceptions
 │   │   │   ├── input_parameters.py
 │   │   │   └── results.py
-│   │   └── infrastructure/
-│   │       └── performance/      # Cross-cutting concerns
-│   └── algorithm.py              # Entry point
+│   │   └── infrastructure/       # Shared infrastructure services
+│   │       ├── file_reader.py    # Generic file reading
+│   │       ├── result_writer.py  # Generic result writing
+│   │       ├── request.py        # Integrated I/O wrapper
+│   │       └── performance/      # Performance monitoring
+│   └── algorithm.py              # Entry point (Ocean Runner integration)
 └── tests/                        # Mirror src structure
     ├── age_average/
     │   ├── domain/
-    │   ├── services/
+    │   ├── application/
     │   └── infrastructure/
     └── shared/
 ```
@@ -532,7 +572,7 @@ tests/
 ├── age_average/
 │   ├── domain/
 │   │   └── test_age_statistics.py
-│   ├── services/
+│   ├── application/
 │   │   └── test_input_parser.py
 │   └── infrastructure/
 │       └── test_file_reader.py
@@ -547,7 +587,7 @@ tests/
 """Tests for InputParser service."""
 
 import pytest
-from age_average.services.input_parser import InputParser
+from age_average.application.input_parser import InputParser
 from shared.domain.exceptions.parsing_error import ParsingError
 
 
@@ -1162,28 +1202,48 @@ class PerformanceMonitor:
         )
 ```
 
-### Pattern 7: Ocean Runner Integration
+### Pattern 7: Modern Ocean Runner Integration with BaseAlgorithm
 
-**Purpose**: Properly integrate with Ocean Runner framework.
+**Purpose**: Properly integrate with Ocean Runner framework using BaseAlgorithm.
 
 ```python
-class MyAlgorithm:
-    """Algorithm with Ocean Runner integration."""
+from shared.infrastructure.base_algorithm import BaseAlgorithm
+from shared.infrastructure.request import Request
+from shared.infrastructure.response import Response
+
+class MyAlgorithm(BaseAlgorithm):
+    """Algorithm with automatic Ocean Runner integration."""
     
-    def __init__(self):
-        """Initialize algorithm and register callbacks."""
-        self.config = AppConfig.load()
-        self.algorithm = Algorithm(config=Config(custom_input=MyInputParameters))
-        self.performance_monitor = PerformanceMonitor(self.algorithm.logger)
+    def __init__(self, config: AppConfig, ocean_algorithm: Algorithm, request: Request, response: Response):
+        """Initialize with injected dependencies."""
+        super().__init__()
+        self.config = config
+        self.algorithm = ocean_algorithm
+        self.request = request  # Input operations
+        self.response = response  # Output operations
         
-        # Register Ocean Runner callbacks
-        self.algorithm.validate(self.validate)
-        self.algorithm.run(self.run)
-        self.algorithm.save_results(self.save)
+        # Callbacks registered automatically by BaseAlgorithm
+        self.register_callbacks(ocean_algorithm)
     
-    def validate(self, algo: Algorithm) -> None:
+    @classmethod
+    def create(cls) -> "MyAlgorithm":
+        """Factory method for easy instantiation."""
+        config = AppConfig.load()
+        ocean_algorithm = Algorithm(config=Config(custom_input=MyInputParameters))
+        
+        # Strict dependency injection (required for SOLID DIP)
+        file_reader = FileReader(ocean_algorithm.logger)
+        result_writer = ResultWriter(ocean_algorithm.logger)
+        request = Request(ocean_algorithm, file_reader)
+        response = Response(result_writer)
+        
+        return cls(config, ocean_algorithm, request, response)
+    
+    def validate_input(self, algo: Algorithm) -> None:
         """
         Validate inputs before processing.
+        
+        Performance monitoring starts automatically via BaseAlgorithm.
         
         Args:
             algo: Algorithm instance with job details
@@ -1193,7 +1253,7 @@ class MyAlgorithm:
         """
         algo.logger.info("validate: starting")
         
-        input_count = len(list(algo.job_details.inputs()))
+        input_count = self.request.count()
         if input_count == 0:
             raise ValidationError("No input files provided")
         
@@ -1211,16 +1271,15 @@ class MyAlgorithm:
         """
         algo.logger.info("run: starting")
         
-        # Initialize services (dependency injection)
-        file_reader = FileReader(algo.logger)
+        # Use integrated services from request
         parser = InputParser(algo.logger)
         calculator = MyCalculator(algo.logger)
         
-        # Process inputs
+        # Process inputs using integrated FileReader
         all_data = []
-        for idx, path in algo.job_details.inputs():
+        for idx, path in self.request.iter_files():
             algo.logger.info(f"Processing input {idx}: {path.name}")
-            text = file_reader.read_text(path)
+            text = self.request.file_reader.read_text(path)
             data = parser.extract_data(text, path.name)
             all_data.extend(data)
         
@@ -1233,6 +1292,8 @@ class MyAlgorithm:
         """
         Save results to output.
         
+        Performance monitoring stops automatically via BaseAlgorithm.
+        
         Args:
             algo: Algorithm instance
             results: Results to save
@@ -1240,11 +1301,15 @@ class MyAlgorithm:
         """
         algo.logger.info("save: starting")
         
-        writer = ResultWriter(algo.logger, self.config.output)
-        output_path = writer.write_results(results, base_path / "outputs")
+        # Use integrated ResultWriter via Response
+        output_file = base_path / self.config.output.filename
+        self.response.write_results(results, output_file)
         
-        algo.logger.info(f"Results written to {output_path}")
-        self.performance_monitor.log_metrics()
+        algo.logger.info(f"Results written to {output_file}")
+        # Performance metrics logged automatically
+
+# Usage
+algorithm = MyAlgorithm.create().algorithm
 ```
 
 ### Pattern 8: Test Fixtures
@@ -1320,7 +1385,7 @@ algorithm/src/price_analysis/
 │   ├── price_results.py
 │   ├── price_point.py
 │   └── price_statistics.py
-├── services/
+├── application/
 │   ├── __init__.py
 │   ├── price_parser.py
 │   └── price_statistics_calculator.py
@@ -1633,33 +1698,48 @@ from ocean_runner import Algorithm, Config
 # Import your new bounded context
 from price_analysis.domain.price_input_parameters import PriceInputParameters
 from price_analysis.domain.price_results import PriceResults
-from price_analysis.services.price_parser import PriceParser
-from price_analysis.services.price_statistics_calculator import PriceStatisticsCalculator
-from price_analysis.infrastructure.csv_reader import CSVReader
+from price_analysis.application.price_parser import PriceParser
+from price_analysis.application.price_statistics_calculator import PriceStatisticsCalculator
 
+from shared.infrastructure.base_algorithm import BaseAlgorithm
 from shared.domain.config.app_config import AppConfig
-from shared.infrastructure.performance.performance_monitor import PerformanceMonitor
+from shared.infrastructure.request import Request
+from shared.infrastructure.response import Response
 
 
-class PriceAnalysisAlgorithm:
-    """Price analysis algorithm implementation."""
+class PriceAnalysisAlgorithm(BaseAlgorithm):
+    """Price analysis algorithm with automatic monitoring and service integration."""
     
-    def __init__(self):
-        """Initialize algorithm."""
-        self.config = AppConfig.load()
-        self.algorithm = Algorithm(config=Config(custom_input=PriceInputParameters))
-        self.performance_monitor = PerformanceMonitor(self.algorithm.logger)
+    def __init__(self, config: AppConfig, ocean_algorithm: Algorithm, request: Request, response: Response):
+        """Initialize with injected dependencies."""
+        super().__init__()
+        self.config = config
+        self.algorithm = ocean_algorithm
+        self.request = request  # Input operations
+        self.response = response  # Output operations
         
-        # Register callbacks
-        self.algorithm.validate(self.validate)
-        self.algorithm.run(self.run)
-        self.algorithm.save_results(self.save)
+        # Callbacks registered automatically by BaseAlgorithm
+        self.register_callbacks(ocean_algorithm)
     
-    def validate(self, algo: Algorithm) -> None:
-        """Validate inputs."""
+    @classmethod
+    def create(cls) -> "PriceAnalysisAlgorithm":
+        """Factory method for easy instantiation."""
+        config = AppConfig.load()
+        ocean_algorithm = Algorithm(config=Config(custom_input=PriceInputParameters))
+        
+        # Strict dependency injection (required for SOLID DIP)
+        file_reader = FileReader(ocean_algorithm.logger)
+        result_writer = ResultWriter(ocean_algorithm.logger)
+        request = Request(ocean_algorithm, file_reader)
+        response = Response(result_writer)
+        
+        return cls(config, ocean_algorithm, request, response)
+    
+    def validate_input(self, algo: Algorithm) -> None:
+        """Validate inputs before processing."""
         algo.logger.info("validate: starting")
         
-        input_count = len(list(algo.job_details.inputs()))
+        input_count = self.request.count()
         if input_count == 0:
             raise ValidationError("No input files provided")
         
@@ -1669,16 +1749,16 @@ class PriceAnalysisAlgorithm:
         """Execute price analysis."""
         algo.logger.info("run: starting")
         
-        # Initialize services
-        csv_reader = CSVReader(algo.logger)
+        # Use integrated services
         parser = PriceParser(algo.logger)
         calculator = PriceStatisticsCalculator(algo.logger)
         
-        # Process inputs
+        # Process inputs using integrated FileReader
         all_prices = []
-        for idx, path in algo.job_details.inputs():
+        for idx, path in self.request.iter_files():
             algo.logger.info(f"Processing input {idx}: {path.name}")
-            data = csv_reader.read_csv(path)
+            # Assuming CSV files - use appropriate reader
+            data = self.request.file_reader.read_csv(path)  # If CSV reader available
             prices = parser.parse_prices(data, path.name)
             all_prices.extend(prices)
         
@@ -1695,16 +1775,16 @@ class PriceAnalysisAlgorithm:
         """Save results."""
         algo.logger.info("save: starting")
         
-        output_path = base_path / "outputs" / "price_analysis.json"
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(results.model_dump_json(indent=2))
+        # Use integrated ResultWriter via Response
+        output_file = base_path / self.config.output.filename
+        self.response.write_results(results, output_file)
         
-        algo.logger.info(f"Results written to {output_path}")
-        self.performance_monitor.log_metrics()
+        algo.logger.info(f"Results written to {output_file}")
+        # Performance metrics logged automatically
 
 
 # Create and run algorithm
-algorithm = PriceAnalysisAlgorithm()
+algorithm = PriceAnalysisAlgorithm.create().algorithm
 ```
 
 ### Step 7: Write Tests
@@ -1761,13 +1841,13 @@ class TestPricePoint:
             )
 ```
 
-**`tests/price_analysis/services/test_price_statistics_calculator.py`**:
+**`tests/price_analysis/application/test_price_statistics_calculator.py`**:
 ```python
 """Tests for PriceStatisticsCalculator service."""
 
 import pytest
 from datetime import datetime
-from price_analysis.services.price_statistics_calculator import PriceStatisticsCalculator
+from price_analysis.application.price_statistics_calculator import PriceStatisticsCalculator
 from price_analysis.domain.price_point import PricePoint
 from shared.domain.exceptions.calculation_error import CalculationError
 
@@ -1870,8 +1950,8 @@ This bounded context implements price analysis functionality for historical pric
 ## Usage
 
 ```python
-from price_analysis.services.price_parser import PriceParser
-from price_analysis.services.price_statistics_calculator import PriceStatisticsCalculator
+from price_analysis.application.price_parser import PriceParser
+from price_analysis.application.price_statistics_calculator import PriceStatisticsCalculator
 
 # Parse prices
 parser = PriceParser(logger)
@@ -1892,7 +1972,7 @@ pytest tests/price_analysis/ -v
 
 ### Checklist for New Bounded Context
 
-- [ ] Directory structure created (domain/services/infrastructure)
+- [ ] Directory structure created (domain/application/infrastructure)
 - [ ] Domain models implemented with Pydantic validation
 - [ ] Services implement business logic with dependency injection
 - [ ] Infrastructure adapters handle external concerns
@@ -1970,7 +2050,7 @@ cat algorithm/config.yaml
 docker compose run --rm algorithm pytest -v
 
 # Run specific test file
-docker compose run --rm algorithm pytest tests/age_average/services/test_input_parser.py -v
+docker compose run --rm algorithm pytest tests/age_average/application/test_input_parser.py -v
 
 # Run with coverage
 docker compose run --rm algorithm pytest --cov=algorithm --cov-report=term-missing
@@ -2111,14 +2191,14 @@ docker compose run --rm algorithm bash
 
 # Inside container, run Python REPL
 python
->>> from algorithm.src.age_average.services.input_parser import InputParser
+>>> from algorithm.src.age_average.application.input_parser import InputParser
 >>> # Test interactively
 ```
 
 #### Debug Specific Test
 ```bash
 # Run single test with verbose output
-docker compose run --rm algorithm pytest tests/age_average/services/test_input_parser.py::TestInputParser::test_extract_ages_from_array_format -vv
+docker compose run --rm algorithm pytest tests/age_average/application/test_input_parser.py::TestInputParser::test_extract_ages_from_array_format -vv
 ```
 
 #### View Container Logs

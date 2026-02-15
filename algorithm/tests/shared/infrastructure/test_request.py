@@ -3,7 +3,7 @@
 import logging
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 from shared.infrastructure.request import Request
 from shared.domain.exceptions.validation_error import ValidationError
@@ -31,8 +31,13 @@ class TestRequest:
         return Mock()
     
     @pytest.fixture
+    def mock_result_writer(self):
+        """Create a mock ResultWriter instance."""
+        return Mock()
+    
+    @pytest.fixture
     def request_wrapper(self, mock_algorithm, mock_file_reader):
-        """Create a Request instance for testing."""
+        """Create a Request instance for testing with mocked services."""
         return Request(mock_algorithm, mock_file_reader)
     
     def test_count_with_no_files(self, request_wrapper, mock_algorithm):
@@ -55,18 +60,18 @@ class TestRequest:
         
         assert count == 3
     
-    def test_get_content_valid_index(self, request_wrapper, mock_algorithm, mock_file_reader):
+    def test_get_content_valid_index(self, request_wrapper, mock_algorithm):
         """Test get_content returns file content for valid index."""
         mock_algorithm.job_details.inputs.return_value = iter([
             (0, Path("/tmp/file1.txt")),
             (1, Path("/tmp/file2.txt"))
         ])
-        mock_file_reader.read_text.return_value = "File content"
+        request_wrapper.file_reader.read_text.return_value = "File content"
         
         content = request_wrapper.get_content(0)
         
         assert content == "File content"
-        mock_file_reader.read_text.assert_called_once()
+        request_wrapper.file_reader.read_text.assert_called_once()
     
     def test_get_content_invalid_index_negative(self, request_wrapper, mock_algorithm):
         """Test get_content raises ValidationError for negative index."""
@@ -102,28 +107,28 @@ class TestRequest:
         assert result[1] == (1, Path("/tmp/file2.txt"))
         assert result[2] == (2, Path("/tmp/file3.txt"))
     
-    def test_merge_all_with_default_separator(self, request_wrapper, mock_algorithm, mock_file_reader):
+    def test_merge_all_with_default_separator(self, request_wrapper, mock_algorithm):
         """Test merge_all combines all file contents with newline."""
         files = [
             (0, Path("/tmp/file1.txt")),
             (1, Path("/tmp/file2.txt"))
         ]
-        mock_algorithm.job_details.inputs.side_effect = lambda: iter(files)
-        mock_file_reader.read_text.side_effect = ["Content 1", "Content 2"]
+        mock_algorithm.job_details.inputs.return_value = iter(files)
+        request_wrapper.file_reader.read_text.side_effect = ["Content 1", "Content 2"]
         
         result = request_wrapper.merge_all()
         
         assert result == "Content 1\nContent 2"
-        assert mock_file_reader.read_text.call_count == 2
+        assert request_wrapper.file_reader.read_text.call_count == 2
     
-    def test_merge_all_with_custom_separator(self, request_wrapper, mock_algorithm, mock_file_reader):
+    def test_merge_all_with_custom_separator(self, request_wrapper, mock_algorithm):
         """Test merge_all with custom separator."""
         files = [
             (0, Path("/tmp/file1.txt")),
             (1, Path("/tmp/file2.txt"))
         ]
-        mock_algorithm.job_details.inputs.side_effect = lambda: iter(files)
-        mock_file_reader.read_text.side_effect = ["Content 1", "Content 2"]
+        mock_algorithm.job_details.inputs.return_value = iter(files)
+        request_wrapper.file_reader.read_text.side_effect = ["Content 1", "Content 2"]
         
         result = request_wrapper.merge_all(separator=" | ")
         
@@ -136,20 +141,20 @@ class TestRequest:
         with pytest.raises(ValidationError, match="No input files to merge"):
             request_wrapper.merge_all()
     
-    def test_batch_iter_single_batch(self, request_wrapper, mock_algorithm, mock_file_reader):
+    def test_batch_iter_single_batch(self, request_wrapper, mock_algorithm):
         """Test batch_iter with all files in one batch."""
         mock_algorithm.job_details.inputs.return_value = iter([
             (0, Path("/tmp/file1.txt")),
             (1, Path("/tmp/file2.txt"))
         ])
-        mock_file_reader.read_text.side_effect = ["Content 1", "Content 2"]
+        request_wrapper.file_reader.read_text.side_effect = ["Content 1", "Content 2"]
         
         batches = list(request_wrapper.batch_iter(batch_size=5))
         
         assert len(batches) == 1
         assert batches[0] == ["Content 1", "Content 2"]
     
-    def test_batch_iter_multiple_batches(self, request_wrapper, mock_algorithm, mock_file_reader):
+    def test_batch_iter_multiple_batches(self, request_wrapper, mock_algorithm):
         """Test batch_iter splits files into multiple batches."""
         mock_algorithm.job_details.inputs.return_value = iter([
             (0, Path("/tmp/file1.txt")),
@@ -158,7 +163,7 @@ class TestRequest:
             (3, Path("/tmp/file4.txt")),
             (4, Path("/tmp/file5.txt"))
         ])
-        mock_file_reader.read_text.side_effect = ["C1", "C2", "C3", "C4", "C5"]
+        request_wrapper.file_reader.read_text.side_effect = ["C1", "C2", "C3", "C4", "C5"]
         
         batches = list(request_wrapper.batch_iter(batch_size=2))
         

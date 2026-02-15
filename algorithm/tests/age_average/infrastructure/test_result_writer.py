@@ -5,7 +5,7 @@ import logging
 import tempfile
 import pytest
 from pathlib import Path
-from age_average.infrastructure.result_writer import ResultWriter
+from shared.infrastructure.result_writer import ResultWriter
 from age_average.domain.age_results import AgeResults
 from shared.domain.exceptions.file_operation_error import FileOperationError
 

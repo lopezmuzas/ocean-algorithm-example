@@ -1,21 +1,11 @@
-"""
-Algorithm entry point.
-
-This module coordinates the algorithm execution using services and following SOLID principles:
-- Single Responsibility: Each service has one clear purpose
-- Open/Closed: Services can be extended without modifying this code
-- Dependency Inversion: Depends on abstractions (services), not implementations
-"""
-
 from pathlib import Path
 from ocean_runner import Algorithm, Config
 
+from age_average.application.calculate_age_statistics_action import CalculateAgeStatisticsAction
 from age_average.domain.age_input_parameters import AgeInputParameters
 from age_average.domain.age_results import AgeResults
-from age_average.services.input_parser import InputParser
-from age_average.services.age_statistics_calculator import AgeStatisticsCalculator
-from age_average.infrastructure.file_reader import FileReader
-from age_average.infrastructure.result_writer import ResultWriter
+from age_average.application.input_parser import InputParser
+from age_average.application.age_statistics_calculator import AgeStatisticsCalculator
 from shared.domain.config.app_config import AppConfig
 from shared.domain.exceptions.validation_error import ValidationError
 from shared.domain.exceptions.parsing_error import ParsingError
@@ -23,7 +13,10 @@ from shared.domain.exceptions.calculation_error import CalculationError
 from shared.domain.exceptions.file_operation_error import FileOperationError
 from shared.domain.results import Results
 from shared.infrastructure.request import Request
-from shared.domain.base_algorithm import BaseAlgorithm
+from shared.infrastructure.response import Response
+from shared.infrastructure.file_reader import FileReader
+from shared.infrastructure.result_writer import ResultWriter
+from shared.infrastructure.base_algorithm import BaseAlgorithm
 
 
 class AgeAlgorithm(BaseAlgorithm):
@@ -39,70 +32,60 @@ class AgeAlgorithm(BaseAlgorithm):
         self,
         config: AppConfig,
         ocean_algorithm: Algorithm,
-        file_reader: FileReader,
         request: Request,
+        response: Response,
+        calculate_action: CalculateAgeStatisticsAction,
     ):
-        """
-        Initialize the algorithm with injected dependencies.
-        
-        Args:
-            config: Application configuration
-            ocean_algorithm: Ocean Protocol algorithm instance
-            file_reader: File reading service
-            request: Request wrapper for input files
-        """
         super().__init__()  # Initialize base algorithm
         self.config = config
         self.algorithm = ocean_algorithm
-        self.file_reader = file_reader
-        self.request = request
+        self.request = request  # Set for base class generic validations
+        self.response = response
+        self.calculate_action = calculate_action
         
         # Register callbacks with the ocean_runner framework
         self.register_callbacks(ocean_algorithm)
     
     @classmethod
-    def create(cls) -> "AgeAlgorithm":
+    def create(cls, config: AppConfig) -> "AgeAlgorithm":
         """
         Factory method to create an AgeAlgorithm instance with default dependencies.
         
-        This method encapsulates the dependency creation logic, following the
-        Dependency Inversion Principle by allowing external configuration
-        while providing sensible defaults.
+        Args:
+            config: AppConfig instance (required).
         
         Returns:
             AgeAlgorithm instance with all dependencies properly initialized
         """
-        # Load configuration
-        config = AppConfig.load()
-        
-        # Create Ocean Protocol algorithm
         ocean_algorithm = Algorithm(config=Config(custom_input=AgeInputParameters))
-        
-        # Create services with proper dependencies
         file_reader = FileReader(ocean_algorithm.logger)
+        result_writer = ResultWriter(ocean_algorithm.logger)
         request = Request(ocean_algorithm, file_reader)
+        response = Response(result_writer)
+        
+        # Create domain services
+        input_parser = InputParser(ocean_algorithm.logger)
+        stats_calculator = AgeStatisticsCalculator(ocean_algorithm.logger)
+        
+        # Create action with injected dependencies
+        calculate_action = CalculateAgeStatisticsAction(
+            request=request,
+            input_parser=input_parser,
+            stats_calculator=stats_calculator,
+        )
         
         return cls(
             config=config,
             ocean_algorithm=ocean_algorithm,
-            file_reader=file_reader,
             request=request,
+            response=response,
+            calculate_action=calculate_action,
         )
     
     def validate_input(self, algo: Algorithm) -> None:
-        """
-        Validate input data before processing.
-        
-        Args:
-            algo: Algorithm instance with job details
-        """
         algo.logger.info("validate: starting")
         try:
-            # Check if we have input files
             input_count = self.request.count()
-            if input_count == 0:
-                raise ValidationError("No input files provided")
-            
             algo.logger.info(f"Found {input_count} input files to process")
             
         except ValidationError as e:
@@ -116,55 +99,20 @@ class AgeAlgorithm(BaseAlgorithm):
         """
         Execute the main algorithm logic.
 
-        This function coordinates services to:
-        1. Read input files
-        2. Parse and extract age data
-        3. Calculate statistics
-        4. Return results
+        This method delegates to the CalculateAgeStatisticsAction to perform
+        the actual business logic of calculating age statistics. The action
+        handles all exceptions internally and returns appropriate results.
 
         Args:
             algo: Algorithm instance with job details and logger
 
         Returns:
-            AgeResults object with calculated statistics
+            AgeResults with calculated statistics or error status
         """
         algo.logger.info("run: starting")
-
-        try:
-            # Initialize services (Dependency Injection)
-            input_parser = InputParser(algo.logger)
-            stats_calculator = AgeStatisticsCalculator(algo.logger)
-
-            # Extract ages from all input files
-            all_ages = []
-            for idx, path in self.request.iter_files():
-                algo.logger.info(f"Processing input {idx}: {path.name}")
-                text = self.file_reader.read_text(path)
-                ages = input_parser.extract_ages(text, path.name)
-                all_ages.extend(ages)
-
-            # Calculate statistics
-            stats = stats_calculator.calculate(all_ages)
-
-            # Build and return results
-            return AgeResults(
-                status="success",
-                message="Algorithm executed successfully",
-                min_age=stats.min_age,
-                max_age=stats.max_age,
-                avg_age=stats.avg_age,
-            )
-            
-        except ValidationError as e:
-            return self._handle_error(algo, e, "Validation failed")
-        except ParsingError as e:
-            return self._handle_error(algo, e, "Failed to parse input data")
-        except CalculationError as e:
-            return self._handle_error(algo, e, "Failed to calculate statistics")
-        except FileOperationError as e:
-            return self._handle_error(algo, e, "File operation failed")
-        except Exception as e:
-            return self._handle_error(algo, e, "Unexpected error")
+        
+        # Delegate business logic to the action (handles all exceptions internally)
+        return self.calculate_action.execute()
     
     def save(
         self,
@@ -173,7 +121,7 @@ class AgeAlgorithm(BaseAlgorithm):
         base_path: Path,
     ) -> None:
         """
-        Save algorithm results to storage.
+        Save algorithm results to outputs folder.
 
         Args:
             algo: Algorithm instance with logger
@@ -183,23 +131,17 @@ class AgeAlgorithm(BaseAlgorithm):
         algo.logger.info("save: starting")
 
         try:
-            # Initialize writer service
-            writer = ResultWriter(algo.logger, self.config.output)
-
             # Write results to configured output file
             output_filename = self.config.output.filename
             output_file = base_path / output_filename
-            writer.write_json(results, output_file)
-
-            # Stop performance monitoring and log final metrics
-            self.stop_performance_monitoring(algo)
+            self.response.write_results(results, output_file)
 
         except FileOperationError as e:
             algo.logger.error(f"Failed to save results: {e}")
             raise
         except Exception as e:
             algo.logger.error(f"Unexpected error during save: {e}")
-            raise FileOperationError(f"Failed to save results: {e}")
+            raise
     
     def _handle_error(self, algo: Algorithm, error: Exception, context: str) -> AgeResults:
         """
@@ -224,7 +166,7 @@ class AgeAlgorithm(BaseAlgorithm):
 
 
 # Create algorithm instance using factory method
-algorithm = AgeAlgorithm.create().algorithm
+algorithm = AgeAlgorithm.create(AppConfig.load()).algorithm
 
 
 if __name__ == "__main__":

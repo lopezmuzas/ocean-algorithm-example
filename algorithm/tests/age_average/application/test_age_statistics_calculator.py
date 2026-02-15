@@ -2,7 +2,7 @@
 
 import logging
 import pytest
-from age_average.services.age_statistics_calculator import AgeStatisticsCalculator
+from age_average.application.age_statistics_calculator import AgeStatisticsCalculator
 from age_average.domain.age_statistics import AgeStatistics
 from shared.domain.exceptions.validation_error import ValidationError
 

@@ -27,6 +27,7 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
     def __init__(self):
         """Initialize the base algorithm."""
         self.performance_monitor = None
+        self.request = None  # Will be set by concrete algorithms
     
     def register_callbacks(self, algorithm: Algorithm) -> None:
         """
@@ -37,14 +38,16 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
         """
         algorithm.validate(self.validate)
         algorithm.run(self.run)
-        algorithm.save_results(self.save)
+        algorithm.save_results(self.save_results)
     
     def validate(self, algo: Algorithm) -> None:
         """
         Validate input data before processing.
         
-        This method automatically starts performance monitoring and then
-        delegates to the concrete algorithm's validate_input method.
+        This method automatically:
+        1. Starts performance monitoring
+        2. Performs generic input validations (infrastructure level)
+        3. Delegates to concrete algorithm's specific validations
         
         Args:
             algo: Algorithm instance with job details
@@ -52,7 +55,11 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
         # Start performance monitoring automatically
         self.start_performance_monitoring(algo)
         
-        # Delegate to concrete algorithm implementation
+        # Perform generic input validations at infrastructure level
+        if self.request is not None:
+            self.request.validate_inputs()
+        
+        # Delegate to concrete algorithm implementation for business-specific validations
         self.validate_input(algo)
     
     @abstractmethod
@@ -89,6 +96,10 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
         """
         Save algorithm results to storage.
         
+        This method should be implemented by concrete algorithms to perform
+        their specific saving logic. Performance monitoring is automatically
+        stopped after the concrete implementation completes.
+        
         Args:
             algo: Algorithm instance with logger
             results: Results object to save
@@ -98,6 +109,24 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
             FileOperationError: If saving fails
         """
         pass
+    
+    def save_results(self, algo: Algorithm, results: Results, base_path: Path) -> None:
+        """
+        Template method that wraps the concrete save implementation.
+        
+        Automatically stops performance monitoring after saving completes.
+        
+        Args:
+            algo: Algorithm instance with logger
+            results: Results object to save
+            base_path: Base directory for output files
+        """
+        try:
+            # Delegate to concrete algorithm implementation
+            self.save(algo, results, base_path)
+        finally:
+            # Always stop performance monitoring, even if save fails
+            self.stop_performance_monitoring(algo)
     
     def start_performance_monitoring(self, algo: Algorithm) -> None:
         """

@@ -42,7 +42,7 @@ COPY algorithm/tests /algorithm/tests
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/algorithm
+ENV PYTHONPATH=/algorithm:/algorithm/src
 
 ENV PATH="/algorithm/.venv/bin:$PATH"
 # Create logs directory and run algorithm with output redirection to single log file (overwrites)

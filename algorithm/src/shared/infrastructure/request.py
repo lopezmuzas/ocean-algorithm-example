@@ -7,27 +7,54 @@ from logging import Logger
 from ocean_runner import Algorithm
 
 from shared.domain.exceptions.validation_error import ValidationError
+from shared.infrastructure.file_reader import FileReader
 
 
 class Request:
     """
-    Encapsulates Ocean Protocol input file access.
+    Encapsulates Ocean Protocol input file access operations.
     
     Provides a clean interface to work with algo.job_details.inputs() and handles
-    file operations through the injected file reader.
+    file reading operations through FileReader service.
+    
+    Follows SOLID Dependency Inversion Principle (DIP) strictly:
+    - Requires explicit dependency injection (no defaults)
+    - Depends on abstractions (FileReader interface) not concretions
+    - Enables testability and flexibility through injection
     """
     
-    def __init__(self, algorithm: Algorithm, file_reader):
+    def __init__(self, algorithm: Algorithm, file_reader: FileReader):
         """
-        Initialize request with Ocean Protocol algorithm and file reader.
+        Initialize request with Ocean Protocol algorithm.
+        
+        Dependencies must be injected for proper SOLID DIP compliance.
         
         Args:
             algorithm: Ocean Protocol Algorithm instance
-            file_reader: FileReader instance for reading file content
+            file_reader: FileReader instance (required dependency injection)
         """
         self.algorithm = algorithm
-        self.file_reader = file_reader
         self.logger = algorithm.logger
+        
+        # Required dependency injection (strict SOLID DIP)
+        self.file_reader = file_reader
+    
+    def validate_inputs(self) -> None:
+        """
+        Validate that input files are available and accessible.
+        
+        This method performs generic input validations that should be done
+        at the infrastructure level, not in the algorithm business logic.
+        
+        Raises:
+            ValidationError: If no input files are provided or files are not accessible
+        """
+        input_count = self.count()
+        if input_count == 0:
+            raise ValidationError("No input files provided")
+        
+        # Additional validations could be added here in the future
+        # (e.g., file size limits, format validation, etc.)
     
     def count(self) -> int:
         """

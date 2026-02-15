@@ -10,6 +10,7 @@
 |--------|------|
 | **Architecture** | Hexagonal: Domain → Services → Infrastructure |
 | **Class per file** | One class = One file |
+| **Package structure** | ❌ DO NOT create `__init__.py` files |
 | **Naming** | `snake_case` (vars/funcs), `PascalCase` (classes), `UPPER_SNAKE_CASE` (constants) |
 | **Methods order** | dunder → classmethod → staticmethod → property → public (α) → private (α) |
 | **Type hints** | Mandatory on all functions |
@@ -29,8 +30,8 @@ algorithm/src/
 │
 ├── <bounded_context>/        # e.g., age_average, price_analysis
 │   ├── domain/              # Pure business logic (NO dependencies)
-│   ├── services/            # Use cases (depend on domain)
-│   └── infrastructure/      # I/O, APIs (depend on domain + services)
+│   ├── application/         # Use cases (depend on domain)
+│   └── infrastructure/      # I/O, APIs (depend on domain + application)
 │
 └── algorithm.py             # Orchestration (Ocean Runner integration)
 ```
@@ -188,44 +189,62 @@ def bad_example():
 
 ## Ocean Protocol Patterns
 
-### Pattern 1: Algorithm Integration
+### Pattern 1: Modern Algorithm with BaseAlgorithm
 ```python
-class MyAlgorithm:
-    def __init__(self):
-        self.config = AppConfig.load()
-        self.algorithm = Algorithm(config=Config(custom_input=MyInputParameters))
-        self.performance = PerformanceMonitor(self.algorithm.logger)
-        
-        self.algorithm.validate(self.validate)
-        self.algorithm.run(self.run)
-        self.algorithm.save_results(self.save)
+from shared.infrastructure.base_algorithm import BaseAlgorithm
+from shared.infrastructure.request import Request
+
+class MyAlgorithm(BaseAlgorithm):
+    """Custom algorithm inheriting common functionality."""
     
-    def validate(self, algo: Algorithm) -> None:
-        input_count = len(list(algo.job_details.inputs()))
+    def __init__(self, config: AppConfig, ocean_algorithm: Algorithm, request: Request):
+        super().__init__()
+        self.config = config
+        self.algorithm = ocean_algorithm
+        self.request = request  # Integrated FileReader & ResultWriter
+        
+        # Callbacks registered automatically
+        self.register_callbacks(ocean_algorithm)
+    
+    @classmethod
+    def create(cls) -> "MyAlgorithm":
+        config = AppConfig.load()
+        ocean_algorithm = Algorithm(config=Config(custom_input=MyInputParameters))
+        
+        # Strict dependency injection (required for SOLID DIP)
+        file_reader = FileReader(ocean_algorithm.logger)
+        result_writer = ResultWriter(ocean_algorithm.logger)
+        request = Request(ocean_algorithm, file_reader, result_writer)
+        
+        return cls(config, ocean_algorithm, request)
+    
+    def validate_input(self, algo: Algorithm) -> None:
+        # Performance monitoring starts automatically
+        input_count = self.request.count()
         if input_count == 0:
             raise ValidationError("No input files")
     
     def run(self, algo: Algorithm) -> Results:
-        # Initialize services (DI)
-        reader = FileReader(algo.logger)
+        # Use integrated services
         parser = InputParser(algo.logger)
         calculator = MyCalculator(algo.logger)
         
-        # Process inputs
         all_data = []
-        for idx, path in algo.job_details.inputs():
-            text = reader.read_text(path)
+        for idx, path in self.request.iter_files():
+            text = self.request.file_reader.read_text(path)
             data = parser.extract_data(text, path.name)
             all_data.extend(data)
         
         return calculator.calculate(all_data)
     
     def save(self, algo: Algorithm, results: Results, base_path: Path) -> None:
-        writer = ResultWriter(algo.logger, self.config.output)
-        writer.write(results, base_path / "outputs")
-        self.performance.log_metrics()
+        # Use integrated ResultWriter
+        output_file = base_path / self.config.output.filename
+        self.request.write_results(results, output_file)
+        # Performance monitoring stops automatically
 
-algorithm = MyAlgorithm()
+# Usage
+algorithm = MyAlgorithm.create().algorithm
 ```
 
 ### Pattern 2: File Reader with Validation
@@ -315,19 +334,16 @@ class MyCalculator:
 ```
 algorithm/src/price_analysis/
 ├── domain/
-│   ├── __init__.py
 │   ├── price_input_parameters.py   # extends InputParameters
 │   ├── price_results.py            # extends Results
 │   └── price_statistics.py         # Pydantic model
-├── services/
-│   ├── __init__.py
+├── application/
 │   ├── price_parser.py             # DI: logger
 │   └── price_calculator.py         # DI: logger
 └── infrastructure/
-    ├── __init__.py
     └── csv_reader.py                # DI: logger
 
-algorithm/tests/price_analysis/     # Mirror structure
+algorithm/tests/price_analysis/     # Mirror structure (NO __init__.py files)
 ```
 
 ### Domain Model Template
@@ -348,7 +364,7 @@ class PriceStatistics(BaseModel):
 
 ### Service Template
 ```python
-# services/price_calculator.py
+# application/price_calculator.py
 from logging import Logger
 from ..domain.price_statistics import PriceStatistics
 
@@ -396,9 +412,9 @@ class CSVReader:
 
 ### Test Structure (mirror src/)
 ```python
-# tests/price_analysis/services/test_price_calculator.py
+# tests/price_analysis/application/test_price_calculator.py
 import pytest
-from price_analysis.services.price_calculator import PriceCalculator
+from price_analysis.application.price_calculator import PriceCalculator
 from shared.domain.exceptions.calculation_error import CalculationError
 
 class TestPriceCalculator:
@@ -465,7 +481,7 @@ class AppConfig(BaseModel):
 
 Before committing, verify:
 
-- [ ] **Architecture**: Correct layer (domain/services/infrastructure)
+- [ ] **Architecture**: Correct layer (domain/application/infrastructure)
 - [ ] **SOLID**: Single responsibility, dependency injection used
 - [ ] **Class order**: dunder → classmethod → staticmethod → property → public (α) → private (α)
 - [ ] **Type hints**: All function signatures have types

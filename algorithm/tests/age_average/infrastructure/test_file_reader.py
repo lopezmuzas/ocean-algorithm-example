@@ -4,7 +4,7 @@ import logging
 import tempfile
 import pytest
 from pathlib import Path
-from age_average.infrastructure.file_reader import FileReader
+from shared.infrastructure.file_reader import FileReader
 from shared.domain.exceptions.validation_error import ValidationError
 from shared.domain.exceptions.file_operation_error import FileOperationError
 
