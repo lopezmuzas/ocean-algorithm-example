@@ -1,7 +1,7 @@
 """Integration tests for the algorithm entry point."""
 
 import pytest
-from src.algorithm import algorithm
+from algorithm import algorithm
 
 
 class TestAlgorithm:

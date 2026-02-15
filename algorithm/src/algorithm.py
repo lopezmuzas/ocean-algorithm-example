@@ -10,19 +10,19 @@ This module coordinates the algorithm execution using services and following SOL
 from pathlib import Path
 from ocean_runner import Algorithm, Config
 
-from src.age_average.domain.age_input_parameters import AgeInputParameters
-from src.age_average.domain.age_results import AgeResults
-from src.age_average.services.input_parser import InputParser
-from src.age_average.services.age_statistics_calculator import AgeStatisticsCalculator
-from src.age_average.infrastructure.file_reader import FileReader
-from src.age_average.infrastructure.result_writer import ResultWriter
-from src.shared.domain.config.app_config import AppConfig
-from src.shared.domain.exceptions.algorithm_error import AlgorithmError
-from src.shared.domain.exceptions.validation_error import ValidationError
-from src.shared.domain.exceptions.parsing_error import ParsingError
-from src.shared.domain.exceptions.calculation_error import CalculationError
-from src.shared.domain.exceptions.file_operation_error import FileOperationError
-from src.shared.infrastructure.performance.performance_monitor import PerformanceMonitor
+from age_average.domain.age_input_parameters import AgeInputParameters
+from age_average.domain.age_results import AgeResults
+from age_average.services.input_parser import InputParser
+from age_average.services.age_statistics_calculator import AgeStatisticsCalculator
+from age_average.infrastructure.file_reader import FileReader
+from age_average.infrastructure.result_writer import ResultWriter
+from shared.domain.config.app_config import AppConfig
+from shared.domain.exceptions.algorithm_error import AlgorithmError
+from shared.domain.exceptions.validation_error import ValidationError
+from shared.domain.exceptions.parsing_error import ParsingError
+from shared.domain.exceptions.calculation_error import CalculationError
+from shared.domain.exceptions.file_operation_error import FileOperationError
+from shared.infrastructure.performance.performance_monitor import PerformanceMonitor
 
 
 class AgeAlgorithm:

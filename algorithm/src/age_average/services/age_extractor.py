@@ -3,7 +3,7 @@
 from typing import Any, List, Callable
 from logging import Logger
 
-from src.shared.domain.exceptions.validation_error import ValidationError
+from shared.domain.exceptions.validation_error import ValidationError
 
 
 class AgeExtractor:

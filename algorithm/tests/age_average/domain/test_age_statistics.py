@@ -1,7 +1,7 @@
 """Unit tests for AgeStatistics model."""
 
 import pytest
-from src.age_average.domain.age_statistics import AgeStatistics
+from age_average.domain.age_statistics import AgeStatistics
 
 
 class TestAgeStatistics:

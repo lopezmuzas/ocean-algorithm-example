@@ -3,8 +3,8 @@
 import json
 import pytest
 from pydantic import ValidationError
-from src.shared.domain.results import Results
-from src.age_average.domain.age_results import AgeResults
+from shared.domain.results import Results
+from age_average.domain.age_results import AgeResults
 
 
 class TestAgeResults:

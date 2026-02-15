@@ -2,8 +2,8 @@
 
 from logging import Logger
 from ..domain.age_statistics import AgeStatistics
-from src.shared.domain.exceptions.validation_error import ValidationError
-from src.shared.domain.exceptions.calculation_error import CalculationError
+from shared.domain.exceptions.validation_error import ValidationError
+from shared.domain.exceptions.calculation_error import CalculationError
 
 
 class AgeStatisticsCalculator:

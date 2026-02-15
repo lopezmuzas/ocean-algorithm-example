@@ -1,6 +1,6 @@
 """Age-specific results."""
 
-from src.shared.domain.results import Results
+from shared.domain.results import Results
 
 
 class AgeResults(Results):
