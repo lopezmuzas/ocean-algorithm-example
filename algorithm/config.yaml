@@ -18,13 +18,6 @@ data:
     min: 0
     max: 150
 
-# Statistics calculation settings
-statistics:
-  # Number of decimal places for average
-  decimal_places: 2
-  # Whether to include count in results
-  include_count: true
-
 # Logging settings
 logging:
   level: "INFO"  # DEBUG, INFO, WARNING, ERROR

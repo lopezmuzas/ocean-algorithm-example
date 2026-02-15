@@ -12,7 +12,7 @@ $ docker buildx build --platform linux/amd64,linux/arm64 -t {ALGORITHM_TAG}:{ALG
 
 This project includes a basic GitHub Actions pipeline that runs:
 - Automated tests with pytest
-- Multi-platform Docker image building
+- Multi-platform Docker image building (hidden)
 
 Workflows are defined in `.github/workflows/ci.yml`.
 
@@ -172,6 +172,7 @@ This project follows **Hexagonal Architecture** (Ports & Adapters) with **SOLID 
 
 ### Running Tests
 
+#### Option 1: Using Docker (Recommended)
 ```bash
 docker compose run --rm algorithm pytest
 ```

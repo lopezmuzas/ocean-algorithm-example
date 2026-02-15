@@ -9,14 +9,12 @@ from .data_config import DataConfig
 from .logging_config import LoggingConfig
 from .output_config import OutputConfig
 from .performance_config import PerformanceConfig
-from .statistics_config import StatisticsConfig
 
 
 class AppConfig(BaseModel):
     """Main application configuration."""
     algorithm: AlgorithmConfig
     data: DataConfig = Field(default_factory=DataConfig)
-    statistics: StatisticsConfig = Field(default_factory=StatisticsConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
     performance: PerformanceConfig = Field(default_factory=PerformanceConfig)
