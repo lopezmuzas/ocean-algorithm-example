@@ -1,11 +1,11 @@
 """Test configuration for unit testing."""
 
-from .app_config import AppConfig
-from .algorithm_config import AlgorithmConfig
-from .data_config import DataConfig
-from .logging_config import LoggingConfig
-from .output_config import OutputConfig
-from .performance_config import PerformanceConfig
+from shared.domain.config.app_config import AppConfig
+from shared.domain.config.algorithm_config import AlgorithmConfig
+from shared.domain.config.data_config import DataConfig
+from shared.domain.config.logging_config import LoggingConfig
+from shared.domain.config.output_config import OutputConfig
+from shared.domain.config.performance_config import PerformanceConfig
 
 
 class TestConfig(AppConfig):
