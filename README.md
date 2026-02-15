@@ -1,212 +1,297 @@
-# Ocean Protocol Algorithm Example
+# Ocean Protocol Algorithm Template
 
-A robust, production-ready template for building algorithms on the Ocean Protocol ecosystem using hexagonal architecture and SOLID principles.
+[![CI](https://github.com/oceanprotocol/ocean-algorithm-example/workflows/CI/badge.svg)](https://github.com/oceanprotocol/ocean-algorithm-example/actions)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://docker.com)
+[![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
-## Build and Push
+A production-ready template for building Ocean Protocol algorithms using **Hexagonal Architecture** and **SOLID principles**. Features comprehensive testing, Docker containerization, and clean code practices.
+
+## ✨ Features
+
+- 🏗️ **Hexagonal Architecture**: Clean separation of concerns with domain-driven design
+- 🧪 **Comprehensive Testing**: 51+ tests with 80%+ coverage
+- 🐳 **Docker Ready**: Multi-platform containerization with optimized builds
+- 📊 **Performance Monitoring**: Built-in metrics and structured logging
+- 🔧 **Configuration Management**: Pydantic-based config with environment overrides
+- 📚 **Developer Friendly**: Extensive documentation and development guides
+- 🚀 **CI/CD Ready**: GitHub Actions pipeline for automated testing and deployment
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker & Docker Compose
+- Python 3.12+ (optional, for local development)
+
+### Run the Example Algorithm
 
 ```bash
-$ docker buildx build --platform linux/amd64,linux/arm64 -t {ALGORITHM_TAG}:{ALGORITHM_VERSION} . --push
+# Clone repository
+git clone https://github.com/oceanprotocol/ocean-algorithm-example.git
+cd ocean-algorithm-example
+
+# Run algorithm with sample data
+docker compose up --build
+
+# View results
+cat _data/outputs/age_statistics_output.json
 ```
 
-## CI/CD
+### Run Tests
 
-This project includes a basic GitHub Actions pipeline that runs:
-- Automated tests with pytest
-- Multi-platform Docker image building (hidden)
+```bash
+# Using Docker (recommended)
+docker compose run --rm algorithm pytest -v
 
-Workflows are defined in `.github/workflows/ci.yml`.
-
-## Configuration
-
-Algorithm parameters can be configured in `algorithm/config.yaml`:
-- Data parameters (supported formats, file limits)
-- Statistics configuration (decimals, include count)
-- Logging (level, format)
-- Performance (batch size, timeouts)
-
-Environment variables can override configuration values. Copy `.env.example` to `.env` and modify as needed.
-
-## How to Create a New Algorithm
-
-To create a new algorithm based on this hexagonal architecture, follow these steps:
-
-### 1. Create a New Bounded Context
-
-Create a new folder under `algorithm/src/` with your algorithm name, for example `price_analysis`:
-
-```
-algorithm/src/price_analysis/
-├── domain/
-├── services/
-└── infrastructure/
+# With coverage report
+docker compose run --rm algorithm pytest --cov=algorithm --cov-report=term-missing
 ```
 
-### 2. Implement the Domain Layer
+## 📖 Documentation
 
-- **Input Parameters**: Create a class that inherits from `shared.domain.input_parameters.InputParameters`
-- **Results**: Create a class that inherits from `shared.domain.results.Results`
-- **Value Objects**: Define domain-specific entities and value objects
+### For Developers
+- **[DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)** - Comprehensive guide with tutorials, examples, and best practices
+- **[AI_GUIDELINES.md](docs/AI_GUIDELINES.md)** - Quick reference optimized for AI assistants
 
-Example:
-```python
-# algorithm/src/price_analysis/domain/price_input_parameters.py
-from shared.domain.input_parameters import InputParameters
+### Key Topics
+- 🏛️ **Architecture Overview**: Hexagonal architecture implementation
+- 🎯 **SOLID Principles**: Applied design patterns
+- 📝 **Code Standards**: Naming conventions, class organization, testing
+- 🔄 **Bounded Contexts**: Creating new algorithms step-by-step
+- 🐳 **Docker Integration**: Containerization and deployment
+- ⚙️ **Configuration**: Environment and YAML-based config management
 
-class PriceInputParameters(InputParameters):
-    prices: list[float]
+## 🏗️ Architecture
+
+This template implements **Hexagonal Architecture** (Ports & Adapters) ensuring:
+
+```
+Domain Layer (Core Business Logic)
+    ↓
+Application Layer (Use Cases)
+    ↓
+Infrastructure Layer (External Adapters)
 ```
 
-### 3. Implement Application Services
+### Current Implementation
+- **Age Statistics Algorithm**: Calculates min/max/average from age datasets
+- **51 Tests**: Comprehensive test coverage across all layers
+- **Performance Monitoring**: Execution time, memory usage, CPU metrics
+- **Error Handling**: Hierarchical exception system with specific error types
 
-Create services containing business logic, dependent only on the domain:
-
-```python
-# algorithm/src/price_analysis/services/price_calculator.py
-from price_analysis.domain.price_input_parameters import PriceInputParameters
-from price_analysis.domain.price_results import PriceResults
-
-class PriceCalculator:
-    def calculate_average_price(self, params: PriceInputParameters) -> PriceResults:
-        # Business logic here
-        pass
-```
-
-### 4. Implement Infrastructure Adapters
-
-Create adapters for data input/output:
-
-```python
-# algorithm/src/price_analysis/infrastructure/price_reader.py
-from price_analysis.domain.price_input_parameters import PriceInputParameters
-
-class PriceReader:
-    def read_from_file(self, file_path: str) -> PriceInputParameters:
-        # Read data from file
-        pass
-```
-
-### 5. Update the Main `algorithm.py` File
-
-Modify `algorithm/src/algorithm.py` to use your new context:
-
-```python
-from price_analysis.services.price_calculator import PriceCalculator
-from price_analysis.infrastructure.price_reader import PriceReader
-from price_analysis.infrastructure.price_writer import PriceWriter
-
-# Instantiate services
-calculator = PriceCalculator()
-reader = PriceReader()
-writer = PriceWriter()
-
-@algorithm.validate
-def validate_price(params: PriceInputParameters, algorithm: Algorithm) -> bool:
-    # Domain-specific validation
-    pass
-
-@algorithm.run
-def run_price(params: PriceInputParameters, algorithm: Algorithm) -> PriceResults:
-    # Execute calculation
-    pass
-
-@algorithm.save_results
-def save_price_results(results: PriceResults, algorithm: Algorithm) -> None:
-    # Save results
-    pass
-```
-
-### 6. Create Tests
-
-Create tests that mirror the source code structure in `algorithm/tests/price_analysis/`.
-
-### 7. Update Configuration
-
-If necessary, add specific parameters in the configuration file `algorithm/config.yaml`.
-
-## Architecture
-
-This project follows **Hexagonal Architecture** (Ports & Adapters) with **SOLID principles**:
-
-- **Domain Layer**: Core business logic and entities
-- **Application Layer**: Use cases and business rules
-- **Infrastructure Layer**: External concerns (files, databases, APIs)
-
-### Key Benefits
-
-- **Testability**: Each layer can be tested in isolation
-- **Maintainability**: Clear separation of concerns
-- **Flexibility**: Easy to change implementations without affecting business logic
-- **Scalability**: Modular structure supports growth
-
-## Project Structure
+### Project Structure
 
 ```
 ├── algorithm/                    # Algorithm implementation
 │   ├── config.yaml              # Configuration file
 │   ├── pyproject.toml           # Python dependencies
 │   ├── src/                     # Source code
-│   │   ├── age_average/         # Current algorithm implementation
-│   │   │   ├── domain/          # Domain entities
-│   │   │   ├── services/        # Application services
-│   │   │   └── infrastructure/  # Infrastructure adapters
-│   │   └── shared/              # Shared components
-│   │       ├── domain/          # Shared domain models
-│   │       └── infrastructure/  # Shared infrastructure
-│   └── tests/                   # Test suite
+│   │   ├── age_average/         # Current bounded context
+│   │   │   ├── domain/          # Business entities & validation
+│   │   │   ├── services/        # Application logic
+│   │   │   └── infrastructure/  # External adapters
+│   │   └── shared/              # Cross-cutting concerns
+│   │       ├── domain/          # Shared models & exceptions
+│   │       └── infrastructure/  # Shared utilities
+│   └── tests/                   # Test suite (mirrors src/)
 ├── docs/                        # Documentation
 ├── _data/                       # Data directories
-│   ├── inputs/                  # Input data
-│   ├── outputs/                 # Output results
-│   └── logs/                    # Log files
-├── docker-compose.yaml          # Docker composition
+│   ├── inputs/                  # Sample input data
+│   ├── outputs/                 # Generated results
+│   └── logs/                    # Application logs
+├── docker-compose.yaml          # Local development
 ├── Dockerfile                   # Container definition
-└── .env.example                 # Environment variables template
+└── .env.example                 # Environment template
 ```
 
-## Development
+## 🛠️ Development
 
-### Prerequisites
-
-- Docker and Docker Compose
-- Python 3.12+ (for local development)
-
-### Running Tests
-
-#### Option 1: Using Docker (Recommended)
-```bash
-docker compose run --rm algorithm pytest
-```
-
-### Running the Algorithm
+### Environment Setup
 
 ```bash
-docker compose up
-```
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and modify values:
-
-```bash
+# Copy environment template
 cp .env.example .env
+
+# Edit configuration (optional)
+# ALGORITHM_NAME=age_average
+# LOG_LEVEL=INFO
+# MAX_FILE_SIZE_MB=100
 ```
 
-Available variables:
-- `ALGORITHM_NAME`: Algorithm identifier
-- `ALGORITHM_VERSION`: Version number
-- `LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
-- `MAX_FILE_SIZE_MB`: Maximum input file size
-- `BATCH_SIZE`: Processing batch size
-- `TIMEOUT_SECONDS`: Operation timeout
--  DID : Decentralized identifier for asset in Ocean Protocol
+### Local Development
 
-## Contributing
+```bash
+# Install dependencies (requires Python 3.12+)
+cd algorithm/
+pip install -e ".[dev]"
 
-1. Follow the hexagonal architecture principles
-2. Write tests for new functionality
-3. Update documentation as needed
-4. Ensure all tests pass before submitting PR
+# Run tests locally
+pytest -v
 
-## License
+# Run algorithm locally
+python -m src.algorithm
+```
 
-See `algorithm/LICENSE` for details.
+### Docker Development
+
+```bash
+# Build and run
+docker compose up --build
+
+# Run tests in container
+docker compose run --rm algorithm pytest
+
+# Interactive development
+docker compose run --rm algorithm bash
+```
+
+## 🔧 Configuration
+
+### Configuration Sources (Priority Order)
+1. **Environment Variables** (highest priority)
+2. **YAML Config File** (`algorithm/config.yaml`)
+3. **Default Values** (fallback)
+
+### Key Configuration Areas
+
+```yaml
+# algorithm/config.yaml
+algorithm:
+  name: "age_average"
+  version: "1.0.0"
+
+data:
+  supported_formats: ["json"]
+  max_file_size_mb: 100
+  age_range:
+    min: 0
+    max: 150
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+performance:
+  batch_size: 1000
+  timeout_seconds: 300
+```
+
+## 🧪 Testing Strategy
+
+### Test Organization
+Tests mirror source structure with comprehensive coverage:
+
+- **Unit Tests**: Domain models, services, infrastructure
+- **Integration Tests**: End-to-end algorithm execution
+- **Configuration Tests**: Validation and loading
+- **Performance Tests**: Resource usage monitoring
+
+### Test Coverage
+- **51 tests** currently passing
+- **80%+ coverage** target
+- **CI/CD integration** with automated testing
+
+## 🚀 Creating New Algorithms
+
+This template makes it easy to add new algorithms. See **[DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)** for the complete step-by-step tutorial.
+
+### Quick Example: Price Analysis Algorithm
+
+1. **Create bounded context structure**:
+   ```bash
+   mkdir -p algorithm/src/price_analysis/{domain,services,infrastructure}
+   ```
+
+2. **Implement domain models**:
+   ```python
+   # algorithm/src/price_analysis/domain/price_statistics.py
+   from pydantic import BaseModel, Field
+
+   class PriceStatistics(BaseModel):
+       min_price: float = Field(ge=0.0)
+       max_price: float = Field(ge=0.0)
+       avg_price: float = Field(ge=0.0)
+   ```
+
+3. **Create application service**:
+   ```python
+   # algorithm/src/price_analysis/services/price_calculator.py
+   class PriceCalculator:
+       def __init__(self, logger: Logger):
+           self.logger = logger
+
+       def calculate(self, prices: list[float]) -> PriceStatistics:
+           return PriceStatistics(
+               min_price=min(prices),
+               max_price=max(prices),
+               avg_price=sum(prices) / len(prices)
+           )
+   ```
+
+4. **Add infrastructure adapter**:
+   ```python
+   # algorithm/src/price_analysis/infrastructure/csv_reader.py
+   class CSVReader:
+       def read_csv(self, path: Path) -> list[dict]:
+           # CSV reading logic
+           pass
+   ```
+
+5. **Update main algorithm** and **add tests**!
+
+See **[DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)** for complete implementation details.
+
+## 📊 Performance & Monitoring
+
+### Built-in Metrics
+- **Execution Time**: Algorithm runtime tracking
+- **Memory Usage**: Current and peak memory consumption
+- **CPU Utilization**: Processor usage percentage
+- **Structured Logging**: JSON-formatted logs with context
+
+### Example Output
+```
+Algorithm execution completed: execution_time=0.107s, memory_usage=0.01MB, peak_memory=39.84MB, cpu_percent=0.00%
+```
+
+## 🔒 Security & Best Practices
+
+- **Input Validation**: Comprehensive data validation using Pydantic
+- **Error Handling**: Specific exceptions with proper logging
+- **Resource Limits**: File size and processing time constraints
+- **Dependency Injection**: No hardcoded dependencies
+- **Type Safety**: Full type hints throughout codebase
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our development guidelines:
+
+1. 📖 Read **[DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)** for architecture and coding standards
+2. 🧪 Write tests for new functionality
+3. 📝 Update documentation as needed
+4. ✅ Ensure all tests pass before submitting PR
+5. 🎯 Follow the established patterns and conventions
+
+### Development Workflow
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/new-algorithm`)
+3. Make changes following the guidelines
+4. Run tests (`docker compose run --rm algorithm pytest`)
+5. Submit pull request
+
+## 📄 License
+
+This project is licensed under the Apache 2.0 License - see the [LICENSE](algorithm/LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Ocean Protocol Community for the ecosystem
+- Hexagonal Architecture and Domain-Driven Design principles
+- SOLID design pattern community
+- Open source testing and development tools
+
+---
+
+**For detailed documentation, tutorials, and examples, see [DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)**
+
+**Built with ❤️ for the Ocean Protocol ecosystem**
