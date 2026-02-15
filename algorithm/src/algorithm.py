@@ -38,27 +38,10 @@ class AgeAlgorithm:
         self.algorithm = Algorithm(config=Config(custom_input=AgeInputParameters))
         self.performance_monitor = PerformanceMonitor(self.algorithm.logger)
         
-        self.algorithm.validate(self._create_validate_callback())
-        self.algorithm.run(self._create_run_callback())
-        self.algorithm.save_results(self._create_save_callback())
-    
-    def _create_validate_callback(self):
-        """Create a callback function for validation."""
-        def validate_callback(algo: Algorithm) -> None:
-            self.validate(algo)
-        return validate_callback
-    
-    def _create_run_callback(self):
-        """Create a callback function for running the algorithm."""
-        def run_callback(algo: Algorithm) -> AgeResults:
-            return self.run(algo)
-        return run_callback
-    
-    def _create_save_callback(self):
-        """Create a callback function for saving results."""
-        def save_callback(algo: Algorithm, results: AgeResults, base_path: Path) -> None:
-            self.save(algo, results, base_path)
-        return save_callback
+        # Register callbacks with the ocean_runner framework
+        self.algorithm.validate(self.validate)
+        self.algorithm.run(self.run)
+        self.algorithm.save_results(self.save)
     
     def validate(self, algo: Algorithm) -> None:
         """
@@ -82,6 +65,27 @@ class AgeAlgorithm:
         except Exception as e:
             algo.logger.error(f"Unexpected validation error: {e}")
             raise
+    
+    def _handle_error(self, algo: Algorithm, error: Exception, context: str) -> AgeResults:
+        """
+        Centralized error handling for the run method.
+        
+        Args:
+            algo: Algorithm instance with logger
+            error: The exception that was raised
+            context: Context description for the error
+            
+        Returns:
+            AgeResults object with error status
+        """
+        algo.logger.error(f"{context}: {error}")
+        return AgeResults(
+            status="error",
+            message=f"{context}: {error}",
+            min_age=0,
+            max_age=0,
+            avg_age=0.0,
+        )
     
     def run(self, algo: Algorithm) -> AgeResults:
         """
@@ -128,50 +132,15 @@ class AgeAlgorithm:
             )
             
         except ValidationError as e:
-            algo.logger.error(f"Input validation error: {e}")
-            return AgeResults(
-                status="error",
-                message=f"Validation failed: {e}",
-                min_age=0,
-                max_age=0,
-                avg_age=0.0,
-            )
+            return self._handle_error(algo, e, "Validation failed")
         except ParsingError as e:
-            algo.logger.error(f"Data parsing error: {e}")
-            return AgeResults(
-                status="error",
-                message=f"Failed to parse input data: {e}",
-                min_age=0,
-                max_age=0,
-                avg_age=0.0,
-            )
+            return self._handle_error(algo, e, "Failed to parse input data")
         except CalculationError as e:
-            algo.logger.error(f"Statistics calculation error: {e}")
-            return AgeResults(
-                status="error",
-                message=f"Failed to calculate statistics: {e}",
-                min_age=0,
-                max_age=0,
-                avg_age=0.0,
-            )
+            return self._handle_error(algo, e, "Failed to calculate statistics")
         except FileOperationError as e:
-            algo.logger.error(f"File operation error: {e}")
-            return AgeResults(
-                status="error",
-                message=f"File operation failed: {e}",
-                min_age=0,
-                max_age=0,
-                avg_age=0.0,
-            )
+            return self._handle_error(algo, e, "File operation failed")
         except Exception as e:
-            algo.logger.error(f"Unexpected error during execution: {e}")
-            return AgeResults(
-                status="error",
-                message=f"Unexpected error: {e}",
-                min_age=0,
-                max_age=0,
-                avg_age=0.0,
-            )
+            return self._handle_error(algo, e, "Unexpected error")
     
     def save(
         self,
