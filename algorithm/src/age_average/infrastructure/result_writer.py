@@ -2,9 +2,10 @@
 
 from pathlib import Path
 from logging import Logger
-from src.shared.domain import Results
+from src.shared.domain.results import Results
 
-from src.shared.domain.exceptions import FileOperationError, ValidationError
+from src.shared.domain.exceptions.file_operation_error import FileOperationError
+from src.shared.domain.exceptions.validation_error import ValidationError
 
 
 class ResultWriter:

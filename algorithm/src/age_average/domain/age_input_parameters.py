@@ -1,6 +1,6 @@
 """Age-specific input parameters."""
 
-from src.shared.domain import InputParameters
+from src.shared.domain.input_parameters import InputParameters
 
 
 class AgeInputParameters(InputParameters):

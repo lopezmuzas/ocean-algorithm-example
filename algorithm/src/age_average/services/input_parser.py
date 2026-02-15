@@ -3,7 +3,8 @@
 import json
 from logging import Logger
 
-from src.shared.domain.exceptions import ParsingError, ValidationError
+from src.shared.domain.exceptions.parsing_error import ParsingError
+from src.shared.domain.exceptions.validation_error import ValidationError
 from .age_extractor import AgeExtractor
 
 

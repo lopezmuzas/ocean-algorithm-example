@@ -2,7 +2,8 @@
 
 import pytest
 from pydantic import ValidationError
-from src.shared.domain import InputParameters, Results
+from src.shared.domain.input_parameters import InputParameters
+from src.shared.domain.results import Results
 
 
 class TestInputParameters:

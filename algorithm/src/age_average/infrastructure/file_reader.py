@@ -3,7 +3,8 @@
 from pathlib import Path
 from logging import Logger
 
-from src.shared.domain.exceptions import FileOperationError, ValidationError
+from src.shared.domain.exceptions.file_operation_error import FileOperationError
+from src.shared.domain.exceptions.validation_error import ValidationError
 
 
 class FileReader:

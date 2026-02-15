@@ -2,8 +2,8 @@
 
 import pytest
 from pydantic import ValidationError
-from src.shared.domain import InputParameters
-from src.age_average.domain import AgeInputParameters
+from src.shared.domain.input_parameters import InputParameters
+from src.age_average.domain.age_input_parameters import AgeInputParameters
 
 
 class TestAgeInputParameters:

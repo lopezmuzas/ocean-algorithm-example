@@ -1,8 +1,9 @@
 """Service for calculating age statistics."""
 
 from logging import Logger
-from ..domain import AgeStatistics
-from src.shared.domain.exceptions import ValidationError, CalculationError
+from ..domain.age_statistics import AgeStatistics
+from src.shared.domain.exceptions.validation_error import ValidationError
+from src.shared.domain.exceptions.calculation_error import CalculationError
 
 
 class AgeStatisticsCalculator:

@@ -3,8 +3,9 @@
 import json
 import logging
 import pytest
-from src.age_average.services import InputParser
-from src.shared.domain.exceptions import ParsingError, ValidationError
+from src.age_average.services.input_parser import InputParser
+from src.shared.domain.exceptions.parsing_error import ParsingError
+from src.shared.domain.exceptions.validation_error import ValidationError
 
 
 class TestInputParser:

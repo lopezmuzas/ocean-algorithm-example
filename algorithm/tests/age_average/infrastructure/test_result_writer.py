@@ -5,9 +5,9 @@ import logging
 import tempfile
 import pytest
 from pathlib import Path
-from src.age_average.infrastructure import ResultWriter
-from src.age_average.domain import AgeResults
-from src.shared.domain.exceptions import FileOperationError
+from src.age_average.infrastructure.result_writer import ResultWriter
+from src.age_average.domain.age_results import AgeResults
+from src.shared.domain.exceptions.file_operation_error import FileOperationError
 
 
 class TestResultWriter:

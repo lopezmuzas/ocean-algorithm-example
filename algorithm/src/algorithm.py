@@ -10,12 +10,19 @@ This module coordinates the algorithm execution using services and following SOL
 from pathlib import Path
 from ocean_runner import Algorithm, Config
 
-from src.age_average.domain import AgeInputParameters, AgeResults
-from src.age_average.services import InputParser, AgeStatisticsCalculator
-from src.age_average.infrastructure import FileReader, ResultWriter
-from src.shared.domain import AppConfig
-from src.shared.domain.exceptions import AlgorithmError, ValidationError, ParsingError, CalculationError, FileOperationError
-from src.shared.infrastructure import PerformanceMonitor
+from src.age_average.domain.age_input_parameters import AgeInputParameters
+from src.age_average.domain.age_results import AgeResults
+from src.age_average.services.input_parser import InputParser
+from src.age_average.services.age_statistics_calculator import AgeStatisticsCalculator
+from src.age_average.infrastructure.file_reader import FileReader
+from src.age_average.infrastructure.result_writer import ResultWriter
+from src.shared.domain.config.app_config import AppConfig
+from src.shared.domain.exceptions.algorithm_error import AlgorithmError
+from src.shared.domain.exceptions.validation_error import ValidationError
+from src.shared.domain.exceptions.parsing_error import ParsingError
+from src.shared.domain.exceptions.calculation_error import CalculationError
+from src.shared.domain.exceptions.file_operation_error import FileOperationError
+from src.shared.infrastructure.performance.performance_monitor import PerformanceMonitor
 
 
 class AgeAlgorithm:
