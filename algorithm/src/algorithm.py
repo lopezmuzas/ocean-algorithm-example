@@ -66,27 +66,6 @@ class AgeAlgorithm:
             algo.logger.error(f"Unexpected validation error: {e}")
             raise
     
-    def _handle_error(self, algo: Algorithm, error: Exception, context: str) -> AgeResults:
-        """
-        Centralized error handling for the run method.
-        
-        Args:
-            algo: Algorithm instance with logger
-            error: The exception that was raised
-            context: Context description for the error
-            
-        Returns:
-            AgeResults object with error status
-        """
-        algo.logger.error(f"{context}: {error}")
-        return AgeResults(
-            status="error",
-            message=f"{context}: {error}",
-            min_age=0,
-            max_age=0,
-            avg_age=0.0,
-        )
-    
     def run(self, algo: Algorithm) -> AgeResults:
         """
         Execute the main algorithm logic.
@@ -175,6 +154,27 @@ class AgeAlgorithm:
         except Exception as e:
             algo.logger.error(f"Unexpected error during save: {e}")
             raise FileOperationError(f"Failed to save results: {e}")
+    
+    def _handle_error(self, algo: Algorithm, error: Exception, context: str) -> AgeResults:
+        """
+        Centralized error handling for the run method.
+        
+        Args:
+            algo: Algorithm instance with logger
+            error: The exception that was raised
+            context: Context description for the error
+            
+        Returns:
+            AgeResults object with error status
+        """
+        algo.logger.error(f"{context}: {error}")
+        return AgeResults(
+            status="error",
+            message=f"{context}: {error}",
+            min_age=0,
+            max_age=0,
+            avg_age=0.0,
+        )
 
 
 # Create algorithm instance
