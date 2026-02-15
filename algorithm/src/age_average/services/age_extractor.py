@@ -53,14 +53,12 @@ class AgeExtractor:
             if not isinstance(item, dict):
                 raise ValidationError(f"Expected object in array, got {type(item)} in {source_name}")
 
-            if "age" not in item:
-                raise ValidationError(f"Missing 'age' field in object from {source_name}")
-
-            age = item["age"]
-            if not isinstance(age, int) or age < 0:
-                raise ValidationError(f"Invalid age value '{age}' in {source_name}")
-
-            ages.append(age)
+            if "age" in item:
+                age = item["age"]
+                if not isinstance(age, int) or age < 0:
+                    raise ValidationError(f"Invalid age value '{age}' in {source_name}")
+                ages.append(age)
+            # Skip items without age field silently
 
         if not ages:
             raise ValidationError(f"No valid ages found in {source_name}")
