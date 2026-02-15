@@ -138,10 +138,11 @@ class AgeAlgorithm:
 
         try:
             # Initialize writer service
-            writer = ResultWriter(algo.logger)
+            writer = ResultWriter(algo.logger, self.config.output)
 
-            # Write results to JSON file
-            output_file = base_path / "results.json"
+            # Write results to configured output file
+            output_filename = self.config.output.filename
+            output_file = base_path / output_filename
             writer.write_json(results, output_file)
 
             # Log final performance metrics

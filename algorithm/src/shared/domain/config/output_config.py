@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class OutputConfig(BaseModel):
     """Output configuration."""
+    filename: str = Field(default="results.json")
     format: str = Field(default="json")
     indent: int = Field(default=2, ge=0)
     encoding: str = Field(default="utf-8")

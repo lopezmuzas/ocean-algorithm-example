@@ -32,6 +32,7 @@ logging:
 
 # Output settings
 output:
+  filename: "age_statistics_output.json"  # Configurable output filename
   format: "json"
   indent: 2
   encoding: "utf-8"
