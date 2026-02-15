@@ -15,6 +15,7 @@ ENV PATH="/algorithm/.venv/bin:$PATH"
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode
 ENV UV_COMPILE_BYTECODE=1
 
+ENV PYTHONDONTWRITEBYTECODE=1
 # uv Cache
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#caching
 ENV UV_LINK_MODE=copy
