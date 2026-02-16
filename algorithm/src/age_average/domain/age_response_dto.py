@@ -3,7 +3,7 @@
 from shared.domain.response_dto import ResponseDTO
 
 
-class AgeResponseDTO(ResponseDTO[dict]):
+class AgeResponseDTO(ResponseDTO):
     """Results for the age statistics algorithm."""
     min_age: int
     max_age: int

@@ -27,7 +27,6 @@ class TestResponseDTO:
         
         assert response.status == "success"
         assert response.message == "Test message"
-        assert response.data is None
     
     def test_base_results_json_serialization(self):
         """Test JSON serialization of base Results."""
