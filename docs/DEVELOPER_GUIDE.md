@@ -1214,30 +1214,35 @@ from shared.infrastructure.response import Response
 class MyAlgorithm(BaseAlgorithm):
     """Algorithm with automatic Ocean Runner integration."""
     
-    def __init__(self, config: AppConfig, ocean_algorithm: Algorithm, request: Request, response: Response):
+    def __init__(
+        self,
+        deps: AlgorithmDependencies,
+        calculate_action: MyCalculateAction,
+        config: AppConfig,
+    ):
         """Initialize with injected dependencies."""
         super().__init__()
         self.config = config
-        self.algorithm = ocean_algorithm
-        self.request = request  # Input operations
-        self.response = response  # Output operations
+        self.algorithm = deps.ocean_algorithm
+        self.request = deps.request  # Input operations
+        self.response = deps.response  # Output operations
+        self.calculate_action = calculate_action
         
         # Callbacks registered automatically by BaseAlgorithm
-        self.register_callbacks(ocean_algorithm)
+        self.register_callbacks(deps.ocean_algorithm)
     
     @classmethod
-    def create(cls) -> "MyAlgorithm":
-        """Factory method for easy instantiation."""
-        config = AppConfig.load()
-        ocean_algorithm = Algorithm(config=Config(custom_input=MyInputParameters))
+    def create(cls, config: AppConfig) -> "MyAlgorithm":
+        """Factory method - composition root for bounded context."""
+        # Create common infrastructure dependencies
+        deps = AlgorithmDependencies.create(MyRequestDTO)
         
-        # Strict dependency injection (required for SOLID DIP)
-        file_reader = FileReader(ocean_algorithm.logger)
-        result_writer = ResponseWriter(ocean_algorithm.logger)
-        request = Request(ocean_algorithm, file_reader)
-        response = Response(result_writer)
+        # Create bounded context specific dependencies
+        mapper = MyMapper()
+        repository = MyRepository(deps.request, mapper)
+        action = MyCalculateAction(repository)
         
-        return cls(config, ocean_algorithm, request, response)
+        return cls(deps, action, config)
     
     def validate_input(self, algo: Algorithm) -> None:
         """
@@ -1308,8 +1313,8 @@ class MyAlgorithm(BaseAlgorithm):
         algo.logger.info(f"Results written to {output_file}")
         # Performance metrics logged automatically
 
-# Usage
-algorithm = MyAlgorithm.create().algorithm
+# Usage in algorithm.py entry point
+algorithm = MyAlgorithm.create(AppConfig.load()).algorithm
 ```
 
 ### Pattern 8: Test Fixtures
@@ -1710,30 +1715,35 @@ from shared.infrastructure.response import Response
 class PriceAnalysisAlgorithm(BaseAlgorithm):
     """Price analysis algorithm with automatic monitoring and service integration."""
     
-    def __init__(self, config: AppConfig, ocean_algorithm: Algorithm, request: Request, response: Response):
+    def __init__(
+        self,
+        deps: AlgorithmDependencies,
+        calculate_action: CalculatePriceStatisticsAction,
+        config: AppConfig,
+    ):
         """Initialize with injected dependencies."""
         super().__init__()
         self.config = config
-        self.algorithm = ocean_algorithm
-        self.request = request  # Input operations
-        self.response = response  # Output operations
+        self.algorithm = deps.ocean_algorithm
+        self.request = deps.request  # Input operations
+        self.response = deps.response  # Output operations
+        self.calculate_action = calculate_action
         
         # Callbacks registered automatically by BaseAlgorithm
-        self.register_callbacks(ocean_algorithm)
+        self.register_callbacks(deps.ocean_algorithm)
     
     @classmethod
-    def create(cls) -> "PriceAnalysisAlgorithm":
-        """Factory method for easy instantiation."""
-        config = AppConfig.load()
-        ocean_algorithm = Algorithm(config=Config(custom_input=PriceInputParameters))
+    def create(cls, config: AppConfig) -> "PriceAnalysisAlgorithm":
+        """Factory method - composition root for price_analysis bounded context."""
+        # Create common infrastructure dependencies
+        deps = AlgorithmDependencies.create(PriceRequestDTO)
         
-        # Strict dependency injection (required for SOLID DIP)
-        file_reader = FileReader(ocean_algorithm.logger)
-        result_writer = ResponseWriter(ocean_algorithm.logger)
-        request = Request(ocean_algorithm, file_reader)
-        response = Response(result_writer)
+        # Create bounded context specific dependencies
+        mapper = PriceMapper()
+        repository = PriceOceanRepository(deps.request, mapper)
+        action = CalculatePriceStatisticsAction(repository)
         
-        return cls(config, ocean_algorithm, request, response)
+        return cls(deps, action, config)
     
     def validate_input(self, algo: Algorithm) -> None:
         """Validate inputs before processing."""
@@ -1745,33 +1755,14 @@ class PriceAnalysisAlgorithm(BaseAlgorithm):
         
         algo.logger.info(f"Found {input_count} input files")
     
-    def run(self, algo: Algorithm) -> PriceResults:
-        """Execute price analysis."""
+    def run(self, algo: Algorithm) -> PriceResponseDTO:
+        """Execute price analysis - delegates to action."""
         algo.logger.info("run: starting")
         
-        # Use integrated services
-        parser = PriceParser(algo.logger)
-        calculator = PriceStatisticsCalculator(algo.logger)
-        
-        # Process inputs using integrated FileReader
-        all_prices = []
-        for idx, path in self.request.iter_files():
-            algo.logger.info(f"Processing input {idx}: {path.name}")
-            # Assuming CSV files - use appropriate reader
-            data = self.request.file_reader.read_csv(path)  # If CSV reader available
-            prices = parser.parse_prices(data, path.name)
-            all_prices.extend(prices)
-        
-        # Calculate statistics
-        stats = calculator.calculate(all_prices)
-        
-        return PriceResults(
-            statistics=stats,
-            data_points_analyzed=len(all_prices),
-            currency=all_prices[0].currency if all_prices else "USD"
-        )
+        # Delegate business logic to action (handles all exceptions internally)
+        return self.calculate_action.execute()
     
-    def save(self, algo: Algorithm, results: PriceResults, base_path: Path) -> None:
+    def save(self, algo: Algorithm, results: ResponseDTO, base_path: Path) -> None:
         """Save results."""
         algo.logger.info("save: starting")
         
@@ -1783,8 +1774,8 @@ class PriceAnalysisAlgorithm(BaseAlgorithm):
         # Performance metrics logged automatically
 
 
-# Create and run algorithm
-algorithm = PriceAnalysisAlgorithm.create().algorithm
+# Update algorithm.py entry point
+algorithm = PriceAnalysisAlgorithm.create(AppConfig.load()).algorithm
 ```
 
 ### Step 7: Write Tests

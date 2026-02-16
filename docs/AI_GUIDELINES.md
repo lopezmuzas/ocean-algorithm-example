@@ -192,59 +192,59 @@ def bad_example():
 ### Pattern 1: Modern Algorithm with BaseAlgorithm
 ```python
 from shared.infrastructure.base_algorithm import BaseAlgorithm
-from shared.infrastructure.request import Request
+from shared.infrastructure.algorithm_dependencies import AlgorithmDependencies
 
 class MyAlgorithm(BaseAlgorithm):
     """Custom algorithm inheriting common functionality."""
     
-    def __init__(self, config: AppConfig, ocean_algorithm: Algorithm, request: Request):
+    def __init__(
+        self,
+        deps: AlgorithmDependencies,
+        calculate_action: MyCalculateAction,
+        config: AppConfig,
+    ):
         super().__init__()
         self.config = config
-        self.algorithm = ocean_algorithm
-        self.request = request  # Integrated FileReader & ResultWriter
+        self.algorithm = deps.ocean_algorithm
+        self.request = deps.request  # Set for base class validations
+        self.response = deps.response
+        self.calculate_action = calculate_action
         
         # Callbacks registered automatically
-        self.register_callbacks(ocean_algorithm)
+        self.register_callbacks(deps.ocean_algorithm)
     
     @classmethod
-    def create(cls) -> "MyAlgorithm":
-        config = AppConfig.load()
-        ocean_algorithm = Algorithm(config=Config(custom_input=MyInputParameters))
+    def create(cls, config: AppConfig) -> "MyAlgorithm":
+        """Composition root for this bounded context."""
+        # Create common infrastructure dependencies
+        deps = AlgorithmDependencies.create(MyRequestDTO)
         
-        # Strict dependency injection (required for SOLID DIP)
-        file_reader = FileReader(ocean_algorithm.logger)
-        result_writer = ResponseWriter(ocean_algorithm.logger)
-        request = Request(ocean_algorithm, file_reader, result_writer)
+        # Create bounded context specific dependencies
+        mapper = MyMapper()
+        repository = MyRepository(deps.request, mapper)
+        action = MyCalculateAction(repository)
         
-        return cls(config, ocean_algorithm, request)
+        return cls(deps, action, config)
     
     def validate_input(self, algo: Algorithm) -> None:
         # Performance monitoring starts automatically
-        input_count = self.request.count()
-        if input_count == 0:
-            raise ValidationError("No input files")
+        algo.logger.info("validate: starting")
+        # Placeholder for business-specific validations
     
-    def run(self, algo: Algorithm) -> Results:
-        # Use integrated services
-        parser = InputParser(algo.logger)
-        calculator = MyCalculator(algo.logger)
-        
-        all_data = []
-        for idx, path in self.request.iter_files():
-            text = self.request.file_reader.read_text(path)
-            data = parser.extract_data(text, path.name)
-            all_data.extend(data)
-        
-        return calculator.calculate(all_data)
+    def run(self, algo: Algorithm) -> MyResponseDTO:
+        # Delegate to action (handles exceptions internally)
+        algo.logger.info("run: starting")
+        return self.calculate_action.execute()
     
-    def save(self, algo: Algorithm, results: Results, base_path: Path) -> None:
-        # Use integrated ResultWriter
+    def save(self, algo: Algorithm, results: ResponseDTO, base_path: Path) -> None:
+        # Use integrated response writer
+        algo.logger.info("save: starting")
         output_file = base_path / self.config.output.filename
-        self.request.write_results(results, output_file)
+        self.response.write_results(results, output_file)
         # Performance monitoring stops automatically
 
 # Usage
-algorithm = MyAlgorithm.create().algorithm
+algorithm = MyAlgorithm.create(AppConfig.load()).algorithm
 ```
 
 ### Pattern 2: File Reader with Validation
