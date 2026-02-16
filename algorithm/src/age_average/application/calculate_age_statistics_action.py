@@ -38,10 +38,7 @@ class CalculateAgeStatisticsAction:
             AgeResponseDTO with calculated statistics from input data or error status
         """
         try:
-            # Load UserAge entities from input files
-            self.repository.get_entities_from_input(AgeRequestDTO)
-            
-            # Retrieve loaded entities
+            # Retrieve loaded entities (automatically loaded in constructor)
             user_ages = self.repository.find_all()
 
             if not user_ages:

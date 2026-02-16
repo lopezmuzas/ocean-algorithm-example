@@ -30,9 +30,10 @@ class UserAgeOceanRepository(OceanInMemoryRepository[UserAge, int]):
             request: Request instance for accessing input files
             mapper: UserAgeMapper instance for transforming DTOs to entities
         """
-        super().__init__(request, mapper)
+        super().__init__(request, mapper, AgeRequestDTO)
 
     # All functionality inherited from OceanInMemoryRepository:
-    # - get_entities_from_input(AgeRequestDTO) for loading data
+    # - get_entities_from_input(AgeRequestDTO) automatically called in constructor
     # - find_all() for retrieving loaded entities
-    # - save(), clear(), count() for entity management
+    # - clear(), count() for entity management
+    # - save(), delete() blocked (READ-ONLY)

@@ -29,6 +29,11 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
         self.performance_monitor = None
         self.request = None  # Will be set by concrete algorithms
     
+    # Note: `_create_common_dependencies` removed. Bounded contexts should create
+    # their own dependencies (e.g. `AlgorithmDependencies` in each context) or
+    # use a central composition root. This keeps `shared` minimal and avoids
+    # coupling infrastructure wiring into the shared package.
+    
     def register_callbacks(self, algorithm: Algorithm) -> None:
         """
         Register algorithm callbacks with the Ocean Protocol framework.

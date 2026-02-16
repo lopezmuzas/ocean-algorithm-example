@@ -28,7 +28,8 @@ class SampleDTO(RequestDTO):
 
 class ConcreteSampleRepository(OceanInMemoryRepository[SampleEntity, int]):
     """Concrete implementation for testing purposes."""
-    pass
+    def __init__(self, request: Request, mapper: MapperInterface[SampleEntity]):
+        super().__init__(request, mapper, SampleDTO)
 
 
 class TestOceanInMemoryRepository:
@@ -39,25 +40,43 @@ class TestOceanInMemoryRepository:
         """Create a mock Request instance."""
         mock_request = Mock(spec=Request)
         mock_request.logger = Mock()
+        # Default behavior to avoid failure in constructor
+        mock_request.validate_inputs.return_value = None
+        mock_request.get_content.return_value = "[]"
         return mock_request
 
     @pytest.fixture
     def mock_mapper(self):
         """Create a mock Mapper instance."""
-        return Mock(spec=MapperInterface)
+        mock_mapper = Mock(spec=MapperInterface)
+        mock_mapper.map_to_entities.return_value = []
+        return mock_mapper
 
     @pytest.fixture
     def repository(self, mock_request, mock_mapper):
         """Create a concrete repository instance for testing."""
         return ConcreteSampleRepository(request=mock_request, mapper=mock_mapper)
 
-    def test_initialization(self, repository):
-        """Test that repository initializes with empty entity list."""
+    def test_initialization(self, repository, mock_request):
+        """Test that repository initializes and loads data from input."""
         assert repository.find_all() == []
         assert repository.count() == 0
+        mock_request.validate_inputs.assert_called_once()
+        mock_request.get_content.assert_called_once_with(0)
+
+    def test_initialization_with_data(self, mock_request, mock_mapper):
+        """Test initialization with data in input files."""
+        input_data = [{"id": 1, "name": "Test"}]
+        mock_request.get_content.return_value = json.dumps(input_data)
+        mock_mapper.map_to_entities.return_value = [SampleEntity(id=1, name="Test")]
+
+        repo = ConcreteSampleRepository(request=mock_request, mapper=mock_mapper)
+        
+        assert repo.count() == 1
+        assert repo.find_all()[0].name == "Test"
 
     def test_find_all_returns_empty_list_initially(self, repository):
-        """Test that find_all() returns empty list when no entities are stored."""
+        """Test that find_all() returns empty list when no entities are loaded."""
         result = repository.find_all()
         assert result == []
         assert isinstance(result, list)
@@ -74,18 +93,17 @@ class TestOceanInMemoryRepository:
         with pytest.raises(NotImplementedError, match="Ocean Protocol repositories are READ-ONLY"):
             repository.delete(1)
 
-    def test_clear_entities(self, repository, mock_request, mock_mapper):
+    def test_clear_entities(self, mock_request, mock_mapper):
         """Test clearing all entities from storage."""
-        # Load some data first
+        # Setup data for initialization
         input_data = [{"id": 1, "name": "First"}, {"id": 2, "name": "Second"}]
-        mock_request.validate_inputs.return_value = None
         mock_request.get_content.return_value = json.dumps(input_data)
         mock_mapper.map_to_entities.return_value = [
             SampleEntity(id=1, name="First"),
             SampleEntity(id=2, name="Second"),
         ]
         
-        repository.get_entities_from_input(SampleDTO)
+        repository = ConcreteSampleRepository(request=mock_request, mapper=mock_mapper)
         assert repository.count() == 2
         
         repository.clear()
@@ -93,13 +111,16 @@ class TestOceanInMemoryRepository:
         assert repository.count() == 0
         assert repository.find_all() == []
 
-    def test_count_method(self, repository, mock_request, mock_mapper):
+    def test_count_method(self, mock_request, mock_mapper):
         """Test count method returns correct number of entities."""
+        # Start with empty list via initialization
+        mock_request.get_content.return_value = "[]"
+        mock_mapper.map_to_entities.return_value = []
+        repository = ConcreteSampleRepository(request=mock_request, mapper=mock_mapper)
         assert repository.count() == 0
         
-        # Load data via get_entities_from_input
+        # Manually trigger reload if needed (though typically happens in init)
         input_data = [{"id": 1, "name": "First"}]
-        mock_request.validate_inputs.return_value = None
         mock_request.get_content.return_value = json.dumps(input_data)
         mock_mapper.map_to_entities.return_value = [SampleEntity(id=1, name="First")]
         

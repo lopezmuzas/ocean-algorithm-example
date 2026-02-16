@@ -1,5 +1,5 @@
 from pathlib import Path
-from ocean_runner import Algorithm, Config
+from ocean_runner import Algorithm
 
 from age_average.application.calculate_age_statistics_action import CalculateAgeStatisticsAction
 from age_average.infrastructure.user_age_ocean_repository import UserAgeOceanRepository
@@ -9,10 +9,7 @@ from age_average.domain.age_response_dto import AgeResponseDTO
 from shared.domain.config.app_config import AppConfig
 from shared.domain.exceptions.file_operation_error import FileOperationError
 from shared.domain.response_dto import ResponseDTO
-from shared.infrastructure.request import Request
-from shared.infrastructure.response import Response
-from shared.infrastructure.file_reader import FileReader
-from shared.infrastructure.response_writer import ResponseWriter
+from shared.infrastructure.algorithm_dependencies import AlgorithmDependencies
 from shared.infrastructure.base_algorithm import BaseAlgorithm
 
 
@@ -27,58 +24,52 @@ class AgeAverageAlgorithm(BaseAlgorithm):
     
     def __init__(
         self,
-        config: AppConfig,
-        ocean_algorithm: Algorithm,
-        request: Request,
-        response: Response,
+        deps: AlgorithmDependencies,
         calculate_action: CalculateAgeStatisticsAction,
+        config: AppConfig,
     ):
         super().__init__()  # Initialize base algorithm
         self.config = config
-        self.algorithm = ocean_algorithm
-        self.request = request  # Set for base class generic validations
-        self.response = response
+        self.algorithm = deps.ocean_algorithm
+        self.request = deps.request  # Set for base class generic validations
+        self.response = deps.response
         self.calculate_action = calculate_action
         
         # Register callbacks with the ocean_runner framework
-        self.register_callbacks(ocean_algorithm)
+        self.register_callbacks(deps.ocean_algorithm)
     
     @classmethod
     def create(cls, config: AppConfig) -> "AgeAverageAlgorithm":
         """
         Factory method to create an AgeAverageAlgorithm instance with default dependencies.
         
+        This method serves as the Composition Root for the age_average bounded context,
+        wiring together all dependencies (infrastructure, application, domain layers).
+        
+        Design Pattern: Factory Method + Dependency Injection
+        - Creates all infrastructure dependencies (Ocean Protocol adapters)
+        - Assembles application layer (Actions/Use Cases)
+        - Injects everything through constructor
+        
         Args:
             config: AppConfig instance (required).
         
         Returns:
             AgeAverageAlgorithm instance with all dependencies properly initialized
+        
+        Note:
+            This is the composition root for this bounded context. Entry point
+            (algorithm.py) delegates to this method to maintain separation of concerns.
         """
-        ocean_algorithm = Algorithm(config=Config(custom_input=AgeRequestDTO))
-        file_reader = FileReader(ocean_algorithm.logger)
-        result_writer = ResponseWriter(ocean_algorithm.logger)
-        request = Request(ocean_algorithm, file_reader)
-        response = Response(result_writer)
+        # Create common infrastructure dependencies
+        deps = AlgorithmDependencies.create(AgeRequestDTO)
         
-        # Create mapper for transforming DTOs to entities
+        # Chain de construcción de dependencias específicas
         mapper = UserAgeMapper()
+        repository = UserAgeOceanRepository(deps.request, mapper)
+        action = CalculateAgeStatisticsAction(repository)
         
-        # Create repository with injected dependencies
-        repository = UserAgeOceanRepository(
-            request=request,
-            mapper=mapper,
-        )
-        
-        # Create action with repository dependency
-        calculate_action = CalculateAgeStatisticsAction(repository=repository)
-        
-        return cls(
-            config=config,
-            ocean_algorithm=ocean_algorithm,
-            request=request,
-            response=response,
-            calculate_action=calculate_action,
-        )
+        return cls(deps, action, config)
     
     def validate_input(self, algo: Algorithm) -> None:
         """
