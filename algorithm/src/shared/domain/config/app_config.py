@@ -2,7 +2,6 @@
 
 from pathlib import Path
 from pydantic import BaseModel, Field
-import os
 
 from .algorithm_config import AlgorithmConfig
 from .data_config import DataConfig
@@ -25,9 +24,8 @@ class AppConfig(BaseModel):
         Resolve configuration file path using intelligent fallback strategy.
         
         Resolution order:
-        1. CONFIG_PATH environment variable (if set)
-        2. /config.yaml (Docker/production environment)
-        3. ./config.yaml relative to project root (development/testing)
+        1. /config.yaml (Docker/production environment)
+        2. ./config.yaml relative to project root (development/testing)
         
         Returns:
             Path: Resolved configuration file path
@@ -35,13 +33,6 @@ class AppConfig(BaseModel):
         Raises:
             FileNotFoundError: If no valid configuration file is found
         """
-        # Try environment variable first
-        env_path = os.getenv("CONFIG_PATH")
-        if env_path:
-            path = Path(env_path)
-            if path.exists():
-                return path
-        
         # Try Docker/production path
         docker_path = Path("/config.yaml")
         if docker_path.exists():
@@ -57,7 +48,6 @@ class AppConfig(BaseModel):
         
         raise FileNotFoundError(
             "Configuration file not found. Tried:\n"
-            f"  - CONFIG_PATH env variable: {env_path or 'not set'}\n"
             f"  - Docker path: {docker_path}\n"
             f"  - Development path: {dev_path}"
         )
@@ -68,42 +58,21 @@ class AppConfig(BaseModel):
         Load application configuration with automatic path resolution.
         
         This method encapsulates the configuration loading strategy,
-        automatically discovering the config file location and applying
-        environment variable overrides.
+        automatically discovering the config file location.
         
         Returns:
             AppConfig: Loaded and validated configuration
         """
         config_path = cls._resolve_config_path()
-        return cls.from_yaml_with_env(config_path)
+        return cls.from_yaml(config_path)
 
     @classmethod
-    def from_yaml_with_env(cls, yaml_path: Path) -> 'AppConfig':
-        """Load configuration from YAML file with environment variable overrides."""
+    def from_yaml(cls, yaml_path: Path) -> 'AppConfig':
+        """Load configuration from YAML file."""
         import yaml
 
         # Load YAML configuration
         with open(yaml_path, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
-
-        # Override with environment variables
-        if 'algorithm' in data:
-            algo = data['algorithm']
-            algo['name'] = os.getenv('ALGORITHM_NAME', algo.get('name', 'age_average'))
-            algo['version'] = os.getenv('ALGORITHM_VERSION', algo.get('version', '1.0.0'))
-            algo['description'] = os.getenv('ALGORITHM_DESCRIPTION', algo.get('description', ''))
-
-        if 'data' in data:
-            data_config = data['data']
-            data_config['max_file_size_mb'] = int(os.getenv('MAX_FILE_SIZE_MB', data_config.get('max_file_size_mb', 100)))
-
-        if 'logging' in data:
-            logging_config = data['logging']
-            logging_config['level'] = os.getenv('LOG_LEVEL', logging_config.get('level', 'INFO'))
-
-        if 'performance' in data:
-            perf_config = data['performance']
-            perf_config['batch_size'] = int(os.getenv('BATCH_SIZE', perf_config.get('batch_size', 1000)))
-            perf_config['timeout_seconds'] = int(os.getenv('TIMEOUT_SECONDS', perf_config.get('timeout_seconds', 300)))
 
         return cls(**data)

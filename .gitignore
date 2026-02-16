@@ -2,10 +2,6 @@
 _data/logs/
 _data/outputs/
 
-# Environment variables
-.env
-!.env.example
-
 # Python cache
 .pytest_cache
 __pycache__/

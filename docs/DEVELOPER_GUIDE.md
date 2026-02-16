@@ -812,9 +812,8 @@ class AppConfig(BaseModel):
         Load configuration from file with intelligent fallback.
         
         Resolution order:
-        1. CONFIG_PATH environment variable
-        2. /config.yaml (production)
-        3. ./config.yaml (development)
+        1. /config.yaml (production)
+        2. ./config.yaml (development)
         
         Returns:
             Loaded and validated configuration
@@ -823,21 +822,6 @@ class AppConfig(BaseModel):
         with open(path) as f:
             data = yaml.safe_load(f)
         return cls(**data)
-```
-
-### Environment Variables
-
-Use environment variables for sensitive or environment-specific values:
-
-```python
-import os
-
-class DatabaseConfig(BaseModel):
-    """Database configuration with env var support."""
-    
-    host: str = Field(default_factory=lambda: os.getenv("DB_HOST", "localhost"))
-    port: int = Field(default_factory=lambda: int(os.getenv("DB_PORT", "5432")))
-    password: str = Field(default_factory=lambda: os.getenv("DB_PASSWORD", ""))
 ```
 
 ---
@@ -1072,9 +1056,9 @@ class AgeInputParameters(InputParameters):
         return v
 ```
 
-### Pattern 4: Configuration Loading with Environment Override
+### Pattern 4: Configuration Loading
 
-**Purpose**: Load configuration with environment variable fallback.
+**Purpose**: Load configuration from YAML file.
 
 ```python
 class AppConfig(BaseModel):
@@ -1087,12 +1071,11 @@ class AppConfig(BaseModel):
     @classmethod
     def load(cls) -> "AppConfig":
         """
-        Load configuration from file with environment override.
+        Load configuration from file.
         
         Resolution order:
-        1. CONFIG_PATH environment variable (if set)
-        2. /config.yaml (Docker/production)
-        3. ./config.yaml (development/testing)
+        1. /config.yaml (Docker/production)
+        2. ./config.yaml (development/testing)
         
         Returns:
             Loaded and validated configuration
@@ -1104,13 +1087,6 @@ class AppConfig(BaseModel):
         path = cls._resolve_config_path()
         with open(path) as f:
             data = yaml.safe_load(f)
-        
-        # Override with environment variables
-        if env_name := os.getenv("ALGORITHM_NAME"):
-            data.setdefault('algorithm', {})['name'] = env_name
-        
-        if env_level := os.getenv("LOG_LEVEL"):
-            data.setdefault('logging', {})['level'] = env_level
         
         return cls(**data)
 ```
@@ -2132,28 +2108,7 @@ git push origin feature/new-bounded-context
 ### Configuration Management
 
 #### Development Configuration
-Use `algorithm/config.yaml` for default development settings.
-
-#### Environment-Specific Configuration
-
-Create `.env` file for environment overrides:
-```bash
-# .env
-ALGORITHM_NAME=price_analysis
-LOG_LEVEL=DEBUG
-MAX_FILE_SIZE_MB=200
-```
-
-#### Docker Environment Variables
-Override in `docker-compose.yaml`:
-```yaml
-services:
-  algorithm:
-    environment:
-      - ALGORITHM_NAME=price_analysis
-      - LOG_LEVEL=INFO
-      - CONFIG_PATH=/config.yaml
-```
+Use `algorithm/config.yaml` for all settings.
 
 ### Performance Monitoring
 
@@ -2340,6 +2295,8 @@ Before committing code, verify:
 - [Compute-to-Data Documentation](https://docs.oceanprotocol.com/developers/compute-to-data/)
 - [Ocean Protocol Python Library](https://github.com/oceanprotocol/ocean.py)
 - [Algorithm Examples Repository](https://github.com/oceanprotocol/algo_examples)
+- **[Ocean Node + C2D Guide (English)](OCEAN_NODE_GUIDE_EN.md)** - Complete architecture guide with practical examples
+- **[Guía Ocean Node + C2D (Español)](OCEAN_NODE_GUIDE_ES.md)** - Guía completa de arquitectura con ejemplos prácticos
 
 ### Testing & Quality
 - [pytest Documentation](https://docs.pytest.org/)

@@ -9,7 +9,5 @@ services:
       - ./algorithm/src:/algorithm/src/
       - ./algorithm/tests:/algorithm/tests/
       - ./algorithm/config.yaml:/config.yaml:ro
-    env_file:
-      - .env
     environment:
       - DID=["ACce67694eD2848dd683c651Dab7Af823b7dd123"]

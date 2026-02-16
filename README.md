@@ -52,6 +52,8 @@ docker compose run --rm algorithm pytest --cov=algorithm --cov-report=term-missi
 ### For Developers
 - **[DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)** - Comprehensive guide with tutorials, examples, and best practices
 - **[AI_GUIDELINES.md](docs/AI_GUIDELINES.md)** - Quick reference optimized for AI assistants
+- **[OCEAN_NODE_GUIDE_EN.md](docs/OCEAN_NODE_GUIDE_EN.md)** - Complete guide to Ocean Node + C2D architecture (English)
+- **[OCEAN_NODE_GUIDE_ES.md](docs/OCEAN_NODE_GUIDE_ES.md)** - Guía completa de Ocean Node + C2D (Español)
 
 ### Key Topics
 - 🏛️ **Architecture Overview**: Hexagonal architecture implementation
@@ -99,24 +101,10 @@ Infrastructure Layer (External Adapters)
 │   ├── inputs/                  # Sample input data
 │   ├── outputs/                 # Generated results
 │   └── logs/                    # Application logs
-├── docker-compose.yaml          # Local development
-├── Dockerfile                   # Container definition
-└── .env.example                 # Environment template
+└── Dockerfile                   # Container definition
 ```
 
 ## 🛠️ Development
-
-### Environment Setup
-
-```bash
-# Copy environment template
-cp .env.example .env
-
-# Edit configuration (optional)
-# ALGORITHM_NAME=age_average
-# LOG_LEVEL=INFO
-# MAX_FILE_SIZE_MB=100
-```
 
 ### Local Development
 
@@ -132,25 +120,11 @@ pytest -v
 python -m src.algorithm
 ```
 
-### Docker Development
-
-```bash
-# Build and run
-docker compose up --build
-
-# Run tests in container
-docker compose run --rm algorithm pytest
-
-# Interactive development
-docker compose run --rm algorithm bash
-```
-
 ## 🔧 Configuration
 
-### Configuration Sources (Priority Order)
-1. **Environment Variables** (highest priority)
-2. **YAML Config File** (`algorithm/config.yaml`)
-3. **Default Values** (fallback)
+### Configuration Sources
+1. **YAML Config File** (`algorithm/config.yaml`)
+2. **Default Values** (fallback)
 
 ### Key Configuration Areas
 
