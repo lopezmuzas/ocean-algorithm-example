@@ -32,7 +32,7 @@ class TestRequest:
     
     @pytest.fixture
     def mock_result_writer(self):
-        """Create a mock ResultWriter instance."""
+        """Create a mock ResponseWriter instance."""
         return Mock()
     
     @pytest.fixture

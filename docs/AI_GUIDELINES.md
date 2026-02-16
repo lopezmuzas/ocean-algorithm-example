@@ -213,7 +213,7 @@ class MyAlgorithm(BaseAlgorithm):
         
         # Strict dependency injection (required for SOLID DIP)
         file_reader = FileReader(ocean_algorithm.logger)
-        result_writer = ResultWriter(ocean_algorithm.logger)
+        result_writer = ResponseWriter(ocean_algorithm.logger)
         request = Request(ocean_algorithm, file_reader, result_writer)
         
         return cls(config, ocean_algorithm, request)
@@ -324,6 +324,79 @@ class MyCalculator:
             )
             raise
 ```
+
+---
+
+## Ocean Protocol Repository Pattern
+
+### READ-ONLY Repositories
+
+**CRITICAL**: Ocean Protocol repositories are **READ-ONLY**. They can only load data from Ocean Protocol input files, not modify it.
+
+```python
+# ✅ CORRECT: OceanInMemoryRepository for read-only access
+from shared.infrastructure.repositories.ocean_in_memory_repository import OceanInMemoryRepository
+from shared.domain.mapper_interface import MapperInterface
+
+class UserAgeOceanRepository(OceanInMemoryRepository[UserAge, int]):
+    """Read-only repository for UserAge entities from Ocean Protocol."""
+    
+    def __init__(self, request: Request, mapper: MapperInterface[UserAge]):
+        super().__init__(request, mapper)
+    
+    # All functionality inherited:
+    # - get_entities_from_input(AgeRequestDTO) - Loads data from Ocean inputs
+    # - find_all() - Returns loaded entities
+    # - clear() - Clears internal storage
+    # - count() - Returns entity count
+
+# Usage in Action
+class CalculateAgeStatisticsAction:
+    def __init__(self, repository: RepositoryInterface):
+        self.repository = repository
+    
+    def execute(self) -> AgeResponseDTO:
+        # Load data from Ocean Protocol inputs (READ-ONLY)
+        self.repository.get_entities_from_input(AgeRequestDTO)
+        
+        # Query loaded data
+        user_ages = self.repository.find_all()
+        
+        # Calculate statistics
+        return self._calculate_stats(user_ages)
+
+# ❌ WRONG: Attempting write operations
+repository.save(entity)    # Raises NotImplementedError
+repository.delete(id)      # Raises NotImplementedError
+```
+
+### Repository Hierarchy
+
+```
+RepositoryInterface[T, ID]  (Domain - Abstract interface)
+         ↑
+         |
+    OceanRepository[T, ID]  (Infrastructure - READ-ONLY base)
+         ↑                   - Provides Ocean Protocol access via Request
+         |                   - save() and delete() raise NotImplementedError
+         |
+    OceanInMemoryRepository[T, ID]  (Infrastructure - In-memory storage)
+         ↑                           - Stores entities in List[T]
+         |                           - get_entities_from_input(dto_class)
+         |                           - find_all(), clear(), count()
+         |
+    UserAgeOceanRepository  (Domain-specific implementation)
+                            - Minimal code, inherits all functionality
+                            - Specifies entity types (UserAge, int)
+```
+
+### Key Rules for Ocean Repositories
+
+1. **READ-ONLY**: No `save()` or `delete()` operations allowed
+2. **Mapper Required**: Must inject `MapperInterface[T]` for DTO-to-Entity conversion
+3. **Generic Loading**: Use `get_entities_from_input(DTOClass)` to load data
+4. **In-Memory Only**: Data stored temporarily in `List[T]` during execution
+5. **Stateless**: Data cleared between algorithm runs
 
 ---
 

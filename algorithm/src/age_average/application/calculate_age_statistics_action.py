@@ -1,117 +1,77 @@
 """Action for calculating age statistics from input files."""
 
-from pathlib import Path
 from typing import List
+from statistics import mean
 
-from age_average.domain.age_results import AgeResults
-from age_average.application.input_parser import InputParser
-from age_average.application.age_statistics_calculator import AgeStatisticsCalculator
-from shared.infrastructure.request import Request
-from shared.domain.exceptions.validation_error import ValidationError
-from shared.domain.exceptions.parsing_error import ParsingError
+from age_average.domain.age_request_dto import AgeRequestDTO
+from age_average.domain.age_response_dto import AgeResponseDTO
+from age_average.domain.user_age import UserAge
+from age_average.infrastructure.user_age_ocean_repository import UserAgeOceanRepository
+from shared.domain.repository_interface import RepositoryInterface
 from shared.domain.exceptions.calculation_error import CalculationError
-from shared.domain.exceptions.file_operation_error import FileOperationError
 
 
 class CalculateAgeStatisticsAction:
     """
-    Action that orchestrates the calculation of age statistics from input files.
-    
-    This action encapsulates the business logic for:
-    1. Reading and parsing input files
-    2. Extracting age data
-    3. Calculating statistics
-    4. Returning results
-    
+    Action that orchestrates the calculation of age statistics.
+
+    This action encapsulates the business logic for calculating age statistics
+    by delegating to the repository layer.
+
     Follows SOLID DIP: all dependencies injected via constructor.
     """
-    
-    def __init__(
-        self,
-        request: Request,
-        input_parser: InputParser,
-        stats_calculator: AgeStatisticsCalculator,
-    ):
+
+    def __init__(self, repository: RepositoryInterface):
         """
-        Initialize action with required dependencies.
-        
+        Initialize action with repository dependency.
+
         Args:
-            request: Request instance for accessing input files
-            input_parser: Parser for extracting ages from text
-            stats_calculator: Calculator for computing age statistics
+            repository: Repository that handles age statistics calculations
         """
-        self.request = request
-        self.input_parser = input_parser
-        self.stats_calculator = stats_calculator
-    
-    def execute(self) -> AgeResults:
+        self.repository = repository
+
+    def execute(self) -> AgeResponseDTO:
         """
         Execute the age statistics calculation.
-        
+
         Returns:
-            AgeResults with calculated statistics or error status
-            
-        Note:
-            This method handles all exceptions internally and returns
-            appropriate error results instead of raising exceptions.
+            AgeResponseDTO with calculated statistics from input data or error status
         """
         try:
-            # Extract ages from all input files
-            all_ages: List[int] = []
+            # Load UserAge entities from input files
+            self.repository.get_entities_from_input(AgeRequestDTO)
             
-            for idx, path in self.request.iter_files():
-                text = self.request.file_reader.read_text(path)
-                ages = self.input_parser.extract_ages(text, path.name)
-                all_ages.extend(ages)
-            
+            # Retrieve loaded entities
+            user_ages = self.repository.find_all()
+
+            if not user_ages:
+                return AgeResponseDTO(
+                    status="success",
+                    message="No data available for statistics calculation",
+                    min_age=0,
+                    max_age=0,
+                    avg_age=0.0,
+                )
+
             # Calculate statistics
-            stats = self.stats_calculator.calculate(all_ages)
-            
-            # Return results
-            return AgeResults(
+            ages = [user_age.age for user_age in user_ages]
+            min_age = min(ages)
+            max_age = max(ages)
+            avg_age = round(mean(ages), 1)
+
+            return AgeResponseDTO(
                 status="success",
-                message="Algorithm executed successfully",
-                min_age=stats.min_age,
-                max_age=stats.max_age,
-                avg_age=stats.avg_age,
+                message=f"Statistics calculated from {len(user_ages)} records",
+                min_age=min_age,
+                max_age=max_age,
+                avg_age=avg_age,
             )
-            
-        except ValidationError as e:
-            return AgeResults(
-                status="error",
-                message=f"Validation failed: {e}",
-                min_age=0,
-                max_age=0,
-                avg_age=0.0,
-            )
-        except ParsingError as e:
-            return AgeResults(
-                status="error",
-                message=f"Failed to parse input data: {e}",
-                min_age=0,
-                max_age=0,
-                avg_age=0.0,
-            )
-        except CalculationError as e:
-            return AgeResults(
-                status="error",
-                message=f"Failed to calculate statistics: {e}",
-                min_age=0,
-                max_age=0,
-                avg_age=0.0,
-            )
-        except FileOperationError as e:
-            return AgeResults(
-                status="error",
-                message=f"File operation failed: {e}",
-                min_age=0,
-                max_age=0,
-                avg_age=0.0,
-            )
+
         except Exception as e:
-            return AgeResults(
+            # Return error response instead of raising exception
+            return AgeResponseDTO(
                 status="error",
-                message=f"Unexpected error: {e}",
+                message=f"Failed to calculate age statistics: {str(e)}",
                 min_age=0,
                 max_age=0,
                 avg_age=0.0,

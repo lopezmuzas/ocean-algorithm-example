@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from shared.infrastructure.response import Response
-from shared.domain.results import Results
+from shared.domain.response_dto import ResponseDTO
 
 
 class TestResponse:
@@ -13,7 +13,7 @@ class TestResponse:
     
     @pytest.fixture
     def mock_result_writer(self):
-        """Create a mock ResultWriter instance."""
+        """Create a mock ResponseWriter instance."""
         return Mock()
     
     @pytest.fixture
@@ -23,7 +23,7 @@ class TestResponse:
     
     def test_write_results(self, response_wrapper, mock_result_writer):
         """Test write_results delegates to result_writer."""
-        mock_results = Results(status="success", message="test")
+        mock_results = ResponseDTO(status="success", message="test")
         mock_path = Path("/tmp/output.json")
         
         # Call write_results

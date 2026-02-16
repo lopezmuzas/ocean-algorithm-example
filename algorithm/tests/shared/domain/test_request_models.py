@@ -2,37 +2,38 @@
 
 import pytest
 from pydantic import ValidationError
-from shared.domain.input_parameters import InputParameters
-from shared.domain.results import Results
+from shared.domain.request_dto import RequestDTO
+from shared.domain.response_dto import ResponseDTO
 
 
-class TestInputParameters:
-    """Test suite for base InputParameters model."""
+class TestRequestDTO:
+    """Test suite for base RequestDTO model."""
     
     def test_create_base_input_parameters(self):
-        """Test creating base InputParameters."""
-        params = InputParameters()
+        """Test creating base RequestDTO."""
+        params = RequestDTO()
         assert params is not None
 
 
-class TestResults:
-    """Test suite for base Results model."""
+class TestResponseDTO:
+    """Test suite for base ResponseDTO model."""
     
-    def test_create_base_results(self):
-        """Test creating base Results with status and message."""
-        results = Results(
+    def test_create_base_response_dto(self):
+        """Test creating base ResponseDTO with status and message."""
+        response = ResponseDTO(
             status="success",
             message="Test message"
         )
         
-        assert results.status == "success"
-        assert results.message == "Test message"
+        assert response.status == "success"
+        assert response.message == "Test message"
+        assert response.data is None
     
     def test_base_results_json_serialization(self):
         """Test JSON serialization of base Results."""
         import json
         
-        results = Results(
+        results = ResponseDTO(
             status="success",
             message="Test message"
         )

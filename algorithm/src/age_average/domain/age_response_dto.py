@@ -1,9 +1,9 @@
 """Age-specific results."""
 
-from shared.domain.results import Results
+from shared.domain.response_dto import ResponseDTO
 
 
-class AgeResults(Results):
+class AgeResponseDTO(ResponseDTO[dict]):
     """Results for the age statistics algorithm."""
     min_age: int
     max_age: int

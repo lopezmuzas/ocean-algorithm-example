@@ -36,7 +36,6 @@ class Request:
         self.algorithm = algorithm
         self.logger = algorithm.logger
         
-        # Required dependency injection (strict SOLID DIP)
         self.file_reader = file_reader
     
     def validate_inputs(self) -> None:
@@ -150,3 +149,22 @@ class Request:
         # Yield remaining items if any
         if batch:
             yield batch
+    
+    def get_job_details(self) -> dict:
+        """
+        Get the complete job details from Ocean Protocol.
+        
+        Returns:
+            Dictionary containing all job details information
+        """
+        return self.algorithm.job_details.__dict__
+    
+    def show_job_details(self) -> None:
+        """
+        Display job details in compact format.
+        """
+        job_details = self.get_job_details()
+        inputs_func = job_details.get('inputs')
+        inputs_count = len(list(inputs_func())) if inputs_func else 0
+        
+        self.logger.info(f"Job details: {len(job_details)} fields, {inputs_count} input files")

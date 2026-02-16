@@ -1,18 +1,18 @@
-"""Unit tests for AgeResults model."""
+"""Unit tests for AgeResponseDTO model."""
 
 import json
 import pytest
 from pydantic import ValidationError
-from shared.domain.results import Results
-from age_average.domain.age_results import AgeResults
+from shared.domain.response_dto import ResponseDTO
+from age_average.domain.age_response_dto import AgeResponseDTO
 
 
-class TestAgeResults:
-    """Test suite for AgeResults model."""
+class TestAgeResponseDTO:
+    """Test suite for AgeResponseDTO model."""
     
     def test_create_valid_results(self):
-        """Test creating AgeResults with valid data."""
-        results = AgeResults(
+        """Test creating AgeResponseDTO with valid data."""
+        results = AgeResponseDTO(
             status="success",
             message="Test message",
             min_age=20,
@@ -27,8 +27,8 @@ class TestAgeResults:
         assert results.avg_age == 35.5
     
     def test_results_with_different_values(self):
-        """Test AgeResults with boundary values."""
-        results = AgeResults(
+        """Test AgeResponseDTO with boundary values."""
+        results = AgeResponseDTO(
             status="error",
             message="",
             min_age=0,
@@ -43,8 +43,8 @@ class TestAgeResults:
         assert results.avg_age == 50.0
     
     def test_results_json_serialization(self):
-        """Test JSON serialization of AgeResults."""
-        results = AgeResults(
+        """Test JSON serialization of AgeResponseDTO."""
+        results = AgeResponseDTO(
             status="success",
             message="Test message",
             min_age=25,
@@ -65,7 +65,7 @@ class TestAgeResults:
     
     def test_results_json_with_indent(self):
         """Test JSON serialization with indentation."""
-        results = AgeResults(
+        results = AgeResponseDTO(
             status="success",
             message="Test",
             min_age=20,
@@ -80,7 +80,7 @@ class TestAgeResults:
     def test_invalid_results(self):
         """Test that invalid data raises ValidationError."""
         with pytest.raises(ValidationError):
-            AgeResults(
+            AgeResponseDTO(
                 status="success",
                 message="Test",
                 min_age="invalid",  # Should be int
@@ -91,15 +91,15 @@ class TestAgeResults:
     def test_missing_required_fields(self):
         """Test that missing required fields raises ValidationError."""
         with pytest.raises(ValidationError):
-            AgeResults(status="success")  # Missing other required fields
+            AgeResponseDTO(status="success")  # Missing other required fields
     
     def test_age_results_inherits_from_base(self):
-        """Test that AgeResults inherits from Results."""
-        results = AgeResults(
+        """Test that AgeResponseDTO inherits from ResponseDTO."""
+        results = AgeResponseDTO(
             status="success",
             message="Test",
             min_age=20,
             max_age=30,
             avg_age=25.0
         )
-        assert isinstance(results, Results)
+        assert isinstance(results, ResponseDTO)

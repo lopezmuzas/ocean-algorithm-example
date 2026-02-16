@@ -10,7 +10,7 @@ from pathlib import Path
 from ocean_runner import Algorithm
 
 from shared.domain.algorithm_interface import AlgorithmInterface
-from shared.domain.results import Results
+from shared.domain.response_dto import ResponseDTO
 from shared.infrastructure.performance.performance_monitor import PerformanceMonitor
 
 
@@ -79,7 +79,7 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
         pass
     
     @abstractmethod
-    def run(self, algo: Algorithm) -> Results:
+    def run(self, algo: Algorithm) -> ResponseDTO:
         """
         Execute the main algorithm logic.
         
@@ -87,12 +87,12 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
             algo: Algorithm instance with job details and logger
             
         Returns:
-            Results of the algorithm execution
+            ResponseDTO of the algorithm execution
         """
         pass
     
     @abstractmethod
-    def save(self, algo: Algorithm, results: Results, base_path: Path) -> None:
+    def save(self, algo: Algorithm, results: ResponseDTO, base_path: Path) -> None:
         """
         Save algorithm results to storage.
         
@@ -102,7 +102,7 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
         
         Args:
             algo: Algorithm instance with logger
-            results: Results object to save
+            results: ResponseDTO object to save
             base_path: Base directory for output files
             
         Raises:
@@ -110,7 +110,7 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
         """
         pass
     
-    def save_results(self, algo: Algorithm, results: Results, base_path: Path) -> None:
+    def save_results(self, algo: Algorithm, results: ResponseDTO, base_path: Path) -> None:
         """
         Template method that wraps the concrete save implementation.
         
@@ -118,7 +118,7 @@ class BaseAlgorithm(AlgorithmInterface, ABC):
         
         Args:
             algo: Algorithm instance with logger
-            results: Results object to save
+            results: ResponseDTO object to save
             base_path: Base directory for output files
         """
         try:

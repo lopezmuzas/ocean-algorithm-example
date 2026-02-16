@@ -73,7 +73,7 @@ algorithm/src/
 │   │   └── __init__.py
 │   └── infrastructure/              # Shared infrastructure services
 │       ├── file_reader.py           # FileReader (moved from age_average)
-│       ├── result_writer.py         # ResultWriter (moved from age_average)
+│       ├── response_writer.py         # ResponseWriter (moved from age_average)
 │       ├── request.py               # Request (input operations wrapper)
 │       ├── response.py              # Response (output operations wrapper)
 │       └── performance/              # Performance monitoring
@@ -169,7 +169,7 @@ algorithm/src/
 
 **Examples**:
 - `FileReader`: Generic file reading service (shared)
-- `ResultWriter`: Generic result writing service (shared)
+- `ResponseWriter`: Generic result writing service (shared)
 - `Request`: Input operations wrapper (file reading)
 - `Response`: Output operations wrapper (result writing)
 - `PerformanceMonitor`: System monitoring and metrics
@@ -268,7 +268,7 @@ class FileReader:
     def read_text(self, path: Path) -> str:
         pass
 
-class ResultWriter:
+class ResponseWriter:
     """Only provides result writing capabilities."""
     def write_json(self, results: dict, path: Path) -> None:
         pass
@@ -282,7 +282,7 @@ Depend on **abstractions**, not concretions. High-level modules should not depen
 ```python
 # Strict dependency injection (required for SOLID compliance)
 file_reader = FileReader(logger)
-result_writer = ResultWriter(logger)
+result_writer = ResponseWriter(logger)
 request = Request(ocean_algorithm, file_reader, result_writer)
 
 class AgeAlgorithm(BaseAlgorithm):
@@ -1233,7 +1233,7 @@ class MyAlgorithm(BaseAlgorithm):
         
         # Strict dependency injection (required for SOLID DIP)
         file_reader = FileReader(ocean_algorithm.logger)
-        result_writer = ResultWriter(ocean_algorithm.logger)
+        result_writer = ResponseWriter(ocean_algorithm.logger)
         request = Request(ocean_algorithm, file_reader)
         response = Response(result_writer)
         
@@ -1301,7 +1301,7 @@ class MyAlgorithm(BaseAlgorithm):
         """
         algo.logger.info("save: starting")
         
-        # Use integrated ResultWriter via Response
+        # Use integrated ResponseWriter via Response
         output_file = base_path / self.config.output.filename
         self.response.write_results(results, output_file)
         
@@ -1729,7 +1729,7 @@ class PriceAnalysisAlgorithm(BaseAlgorithm):
         
         # Strict dependency injection (required for SOLID DIP)
         file_reader = FileReader(ocean_algorithm.logger)
-        result_writer = ResultWriter(ocean_algorithm.logger)
+        result_writer = ResponseWriter(ocean_algorithm.logger)
         request = Request(ocean_algorithm, file_reader)
         response = Response(result_writer)
         
@@ -1775,7 +1775,7 @@ class PriceAnalysisAlgorithm(BaseAlgorithm):
         """Save results."""
         algo.logger.info("save: starting")
         
-        # Use integrated ResultWriter via Response
+        # Use integrated ResponseWriter via Response
         output_file = base_path / self.config.output.filename
         self.response.write_results(results, output_file)
         

@@ -41,6 +41,13 @@ class MyAlgorithm(BaseAlgorithm):
 - **Actions manejan excepciones internamente** y retornan `Results` con status "error"
 - **Excepciones específicas**: `ValidationError`, `ParsingError`, `CalculationError`, `FileOperationError`
 
+### Repositorios Ocean (READ-ONLY)
+- **❌ NO usar `save()` o `delete()`** en repositorios Ocean (lanzan `NotImplementedError`)
+- **✅ Usar `get_entities_from_input(DTOClass)`** para cargar datos de Ocean Protocol
+- **Mapper obligatorio**: Inyectar `MapperInterface[T]` en constructor
+- **Herencia**: `OceanInMemoryRepository[Entity, ID]` para almacenamiento temporal
+- **Consulta**: Usar `find_all()`, `clear()`, `count()` para datos cargados
+
 ---
 
 **Para reglas completas, ejemplos detallados y mejores prácticas: @docs/AI_GUIDELINES.md**

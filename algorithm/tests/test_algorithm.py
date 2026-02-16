@@ -1,7 +1,8 @@
 """Integration tests for the algorithm entry point."""
 
 import pytest
-from algorithm import algorithm, AgeAlgorithm
+from algorithm import algorithm
+from age_average.age_average_algorithm import AgeAverageAlgorithm
 from shared.domain.algorithm_interface import AlgorithmInterface
 
 
@@ -29,11 +30,11 @@ class TestAlgorithm:
         assert callable(algorithm)
     
     def test_age_algorithm_implements_interface(self):
-        """Test that AgeAlgorithm implements AlgorithmInterface."""
+        """Test that AgeAverageAlgorithm implements AlgorithmInterface."""
         # Create an instance using the factory method
         from shared.domain.config.test_config import TestConfig
         config = TestConfig.create()
-        age_algorithm = AgeAlgorithm.create(config)
+        age_algorithm = AgeAverageAlgorithm.create(config)
         
         # Verify it implements the interface
         assert isinstance(age_algorithm, AlgorithmInterface)
@@ -55,7 +56,7 @@ class TestAlgorithm:
         
         # Create an instance
         config = TestConfig.create()
-        age_algorithm = AgeAlgorithm.create(config)
+        age_algorithm = AgeAverageAlgorithm.create(config)
         
         # Verify it can be treated as the interface type
         algorithm_interface: AlgorithmInterface = age_algorithm
