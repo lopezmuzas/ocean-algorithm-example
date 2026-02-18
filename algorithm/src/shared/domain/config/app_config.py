@@ -23,9 +23,10 @@ class AppConfig(BaseModel):
         """
         Resolve configuration file path using intelligent fallback strategy.
         
-        Resolution order:
-        1. /config.yaml (Docker/production environment)
+        Resolution order (for C2D compatibility):
+        1. /algorithm/config.yaml (Docker/C2D production environment)
         2. ./config.yaml relative to project root (development/testing)
+        3. /config.yaml (legacy Docker path)
         
         Returns:
             Path: Resolved configuration file path
@@ -33,8 +34,8 @@ class AppConfig(BaseModel):
         Raises:
             FileNotFoundError: If no valid configuration file is found
         """
-        # Try Docker/production path
-        docker_path = Path("/config.yaml")
+        # Try Docker/C2D production path
+        docker_path = Path("/algorithm/config.yaml")
         if docker_path.exists():
             return docker_path
         
@@ -46,10 +47,16 @@ class AppConfig(BaseModel):
         if dev_path.exists():
             return dev_path
         
+        # Try legacy Docker path (for backward compatibility)
+        legacy_docker_path = Path("/config.yaml")
+        if legacy_docker_path.exists():
+            return legacy_docker_path
+        
         raise FileNotFoundError(
             "Configuration file not found. Tried:\n"
-            f"  - Docker path: {docker_path}\n"
-            f"  - Development path: {dev_path}"
+            f"  - C2D Docker path: {docker_path}\n"
+            f"  - Development path: {dev_path}\n"
+            f"  - Legacy Docker path: {legacy_docker_path}"
         )
 
     @classmethod

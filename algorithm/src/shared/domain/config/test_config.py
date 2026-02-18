@@ -8,11 +8,11 @@ from shared.domain.config.output_config import OutputConfig
 from shared.domain.config.performance_config import PerformanceConfig
 
 
-class TestConfig(AppConfig):
+class DefaultTestConfig(AppConfig):
     """Test configuration with sensible defaults for testing."""
 
     @classmethod
-    def create(cls) -> 'TestConfig':
+    def create(cls) -> 'DefaultTestConfig':
         """Create a test configuration with default test values."""
         return cls(
             algorithm=AlgorithmConfig(
