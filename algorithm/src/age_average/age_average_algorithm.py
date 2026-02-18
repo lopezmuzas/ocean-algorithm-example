@@ -1,4 +1,6 @@
 from pathlib import Path
+import traceback
+from typing import Optional
 from ocean_runner import Algorithm
 
 from age_average.application.calculate_age_statistics_action import CalculateAgeStatisticsAction
@@ -8,6 +10,7 @@ from age_average.domain.age_request_dto import AgeRequestDTO
 from age_average.domain.age_response_dto import AgeResponseDTO
 from shared.domain.config.app_config import AppConfig
 from shared.domain.exceptions.file_operation_error import FileOperationError
+from shared.domain.exceptions.validation_error import ValidationError
 from shared.domain.response_dto import ResponseDTO
 from shared.infrastructure.algorithm_dependencies import AlgorithmDependencies
 from shared.infrastructure.base_algorithm import BaseAlgorithm
@@ -34,6 +37,7 @@ class AgeAverageAlgorithm(BaseAlgorithm):
         self.request = deps.request  # Set for base class generic validations
         self.response = deps.response
         self.calculate_action = calculate_action
+        self._validation_error: Optional[Exception] = None  # Store validation errors
         
         # Register callbacks with the ocean_runner framework
         self.register_callbacks(deps.ocean_algorithm)
@@ -73,35 +77,81 @@ class AgeAverageAlgorithm(BaseAlgorithm):
     
     def validate_input(self, algo: Algorithm) -> None:
         """
-        Placeholder for input validation.
+        Validate custom parameters from Ocean Protocol.
         
-        As a test algorithm, no actual validation is performed.
-        Use self.request to access input files and metadata for validation if needed.
+        Captures validation errors without raising exceptions. Errors are stored
+        in _validation_error and will be converted to error ResponseDTO in run().
         
         Args:
             algo: Ocean Protocol algorithm instance
         """
-        algo.logger.info("validate: starting - use self.request to validate inputs/metadata")
-        # Placeholder: Add input/metadata validation logic here using self.request
+        try:
+            algo.logger.info("validate: starting - validating custom parameters")
+            
+            # Get custom parameters from both sources
+            params = self.request.get_custom_parameters()        
+            age = params.get('age')
+            
+            if age is None:
+                algo.logger.error("Validation failed: Missing required parameter 'age'")
+                raise ValidationError("Missing required parameter: age")
+            
+            algo.logger.info(f"Validation successful - age parameter: {age}")
+            
+        except Exception as e:
+            # Capture error and log traceback
+            algo.logger.error(f"Validation error: {e}")
+            algo.logger.error(f"Validation error traceback:\n{traceback.format_exc()}")
+            self._validation_error = e
     
     def run(self, algo: Algorithm) -> AgeResponseDTO:
         """
-        Execute the main algorithm logic.
+        Execute the main algorithm logic with comprehensive error handling.
 
-        This method delegates to the CalculateAgeStatisticsAction to perform
-        the actual business logic of calculating age statistics. The action
-        handles all exceptions internally and returns appropriate results.
+        This method ensures that a ResponseDTO is ALWAYS returned:
+        - Validation error: Returns error DTO from validation failure
+        - Success: AgeResponseDTO with calculated statistics
+        - Runtime error: AgeResponseDTO with error status and message
+        
+        All exceptions are caught, logged with full traceback, and converted
+        to error response DTOs.
 
         Args:
             algo: Algorithm instance with job details and logger
 
         Returns:
-            AgeResponseDTO with calculated statistics or error status
+            AgeResponseDTO: Always returns a DTO (success or error)
         """
         algo.logger.info("run: starting")
         
-        # Delegate business logic to the action (handles all exceptions internally)
-        return self.calculate_action.execute()
+        # Check if validation failed
+        if self._validation_error:
+            algo.logger.info("Returning error response due to validation failure")
+            return AgeResponseDTO(
+                status="error",
+                message=f"Validation error: {str(self._validation_error)}",
+                min_age=0,
+                max_age=0,
+                avg_age=0.0,
+            )
+        
+        try:
+            # Delegate business logic to the action
+            result = self.calculate_action.execute()
+            algo.logger.info(f"Algorithm completed successfully: {result.status}")
+            return result
+            
+        except Exception as e:
+            # Catch-all for any unexpected errors
+            algo.logger.error(f"Unexpected error in algorithm execution: {e}")
+            algo.logger.error(f"Full traceback:\n{traceback.format_exc()}")
+            return AgeResponseDTO(
+                status="error",
+                message=f"Algorithm error: {str(e)}",
+                min_age=0,
+                max_age=0,
+                avg_age=0.0,
+            )
     
     def save(
         self,
@@ -110,11 +160,15 @@ class AgeAverageAlgorithm(BaseAlgorithm):
         base_path: Path,
     ) -> None:
         """
-        Save algorithm results to outputs folder.
+        Save algorithm results to outputs folder with error handling.
+        
+        Writes the ResponseDTO (success or error) to the output file.
+        If saving fails, logs the error with full traceback but doesn't
+        crash the algorithm.
 
         Args:
             algo: Algorithm instance with logger
-            results: ResponseDTO object to save
+            results: ResponseDTO object to save (can be success or error)
             base_path: Base directory for output files
         """
         algo.logger.info("save: starting")
@@ -124,31 +178,14 @@ class AgeAverageAlgorithm(BaseAlgorithm):
             output_filename = self.config.output.filename
             output_file = base_path / output_filename
             self.response.write_results(results, output_file)
+            algo.logger.info(f"Results saved successfully to {output_file}")
 
         except FileOperationError as e:
             algo.logger.error(f"Failed to save results: {e}")
+            algo.logger.error(f"File operation error traceback:\n{traceback.format_exc()}")
             raise
+            
         except Exception as e:
             algo.logger.error(f"Unexpected error during save: {e}")
+            algo.logger.error(f"Full traceback:\n{traceback.format_exc()}")
             raise
-    
-    def _handle_error(self, algo: Algorithm, error: Exception, context: str) -> AgeResponseDTO:
-        """
-        Centralized error handling for the run method.
-        
-        Args:
-            algo: Algorithm instance with logger
-            error: The exception that was raised
-            context: Context description for the error
-            
-        Returns:
-            AgeResponseDTO object with error status
-        """
-        algo.logger.error(f"{context}: {error}")
-        return AgeResponseDTO(
-            status="error",
-            message=f"{context}: {error}",
-            min_age=0,
-            max_age=0,
-            avg_age=0.0,
-        )
