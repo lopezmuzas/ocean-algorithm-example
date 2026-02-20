@@ -2297,6 +2297,7 @@ Before committing code, verify:
 - [Algorithm Examples Repository](https://github.com/oceanprotocol/algo_examples)
 - **[Ocean Node + C2D Guide (English)](OCEAN_NODE_GUIDE_EN.md)** - Complete architecture guide with practical examples
 - **[Guía Ocean Node + C2D (Español)](OCEAN_NODE_GUIDE_ES.md)** - Guía completa de arquitectura con ejemplos prácticos
+- **[Instalación local Ocean Node + Anvil + C2D V2](OCEAN_NODE_INSTALL.md)** - Docker Compose completo para entorno local de desarrollo: Ocean Node, Anvil, TypeSense e IPFS con C2D V2 funcional
 
 ### Testing & Quality
 - [pytest Documentation](https://docs.pytest.org/)
